@@ -12,7 +12,7 @@ extra-source-files:
 synopsis: A prototype implementation of the RCPL compliler.
 category: Domain Specific Languages, Reversible Computing.
 
-description: Please see the README on GitHub at <https://github.com/jtkristensen/rcpl#readme>
+description: Please see the README on GitHub at <https://github.com/jtkristensen/rcpl/blob/main/README.md>
 
 dependencies:
 - base >= 4.7 && < 5
