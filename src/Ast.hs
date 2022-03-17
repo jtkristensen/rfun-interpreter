@@ -32,7 +32,7 @@ type Program
   = [Definition]
 
 data Definition
-  = Function { f :: FName, p :: Pattern, e :: Body }
+  = Function FName Pattern Body
   deriving (Show, Eq)
 
 data Pattern

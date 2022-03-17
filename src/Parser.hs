@@ -18,11 +18,6 @@ module Parser where
 
 import Ast
 import Text.Parsec
-import Data.Char
-  ( isLower
-  , isUpper
-  , isSpace
-  )
 
 type Parser = Parsec String ()
 
