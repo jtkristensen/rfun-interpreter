@@ -27,6 +27,7 @@ source-repository head
 library
   exposed-modules:
       Ast
+      Parser
   other-modules:
       Paths_rcpl
   hs-source-dirs:

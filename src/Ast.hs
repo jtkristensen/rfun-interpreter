@@ -19,6 +19,7 @@ Gent, Beligium, July 2022).
 
 module Ast where
 
+-- * Abbreviations.
 type Name       = String
 type FName      = Name
 type VName      = Name
@@ -26,9 +27,11 @@ type Body       = Expression
 type InPattern  = Pattern
 type OutPattern = Pattern
 
-type Program    = [Definition]
+-- * Language definition.
+type Program
+  = [Definition]
 
-newtype Definition
+data Definition
   = Function { f :: FName, p :: Pattern, e :: Body }
   deriving (Show, Eq)
 
@@ -46,10 +49,11 @@ data Expression
   deriving (Show, Eq)
 
 data Value
-  = Value Name [Value] -- Algebraic data type.
+  = Value Name [Value]
   deriving (Show, Eq)
 
 -- Todo:
--- [ ] Pretty printer?
--- [ ] What instances.
--- [ ] Documentation for syntactic parts (once they have been decided).
+-- [ ] What instances ?
+-- [ ] Documentation for syntactic parts (once they have been decided)?
+-- [ ] What about equality ?
+-- [ ] Pretty printer ?
