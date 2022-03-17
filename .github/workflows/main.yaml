@@ -1,3 +1,4 @@
+name: main-ci
 on:
   push:
     branches:
@@ -10,11 +11,11 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: rwe/actions-hlint-setup@v1
-      - uses: rwe/actions-hlint-run@v2
+    - uses: actions/checkout@v2
+    - uses: rwe/actions-hlint-setup@v1
+    - uses: rwe/actions-hlint-run@v2
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: freckle/stack-action@v3
+    - uses: actions/checkout@v2
+    - uses: freckle/stack-action@v3
