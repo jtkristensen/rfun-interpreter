@@ -22,19 +22,24 @@ import Text.Parsec
 type Parser = Parsec String ()
 
 lexeme :: Parser a -> Parser a
-lexeme p = p >>= \a -> many space >> return a
+lexeme p =
+  p >>= \a -> many space >> return a
 
 reserved :: [ Name ]
-reserved = [ "fun", "let", "in", "rlet", "case", "dup" ]
+reserved =
+  [ "fun", "let", "in", "rlet", "case", "dup" ]
 
 isReserved :: Name -> Bool
-isReserved name = name `elem` reserved
+isReserved name =
+  name `elem` reserved
 
 underscore :: Parser Char
-underscore = char '_'
+underscore =
+  char '_'
 
 starts_with :: Parser Char -> Parser Name
-starts_with p = (:) <$> p <*> many (choice [ letter , digit , underscore ] )
+starts_with p =
+  (:) <$> p <*> many (choice [ letter , digit , underscore ] )
 
 fname :: Parser Name
 fname =
