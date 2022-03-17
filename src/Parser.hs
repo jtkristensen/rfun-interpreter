@@ -24,40 +24,136 @@ type Parser = Parsec String ()
 
 lexeme :: Parser a -> Parser a
 lexeme p =
-  p >>= \a -> many space >> return a
+  do a <- p
+     _ <- many space
+     return a
 
 reserved :: [ Name ]
 reserved =
-  [ "fun", "let", "in", "rlet", "case", "dup" ]
+  [ "fun" , "let"
+  , "in"  , "rlet"
+  , "dup" , "case"
+  ]
 
 isReserved :: Name -> Bool
 isReserved name =
   name `elem` reserved
 
+symbol :: String -> Parser ()
+symbol s = void $ lexeme $ string s
+
+keyword :: String -> Parser ()
+keyword k =
+  if   k `elem` reserved
+  then symbol k
+  else fail $ "Internal error (unexpected keyword) : " ++ k
+
 underscore :: Parser Char
 underscore =
   char '_'
 
+inParentheses :: Parser a -> Parser a
+inParentheses =
+  between (symbol "(") (symbol ")")
+
 startsWith :: Parser Char -> Parser Name
 startsWith p =
-  (:) <$> p <*> many (choice [ letter , digit , underscore ] )
+  lexeme $
+  do n   <- p
+     ame <- many (choice [ letter , digit , underscore ] )
+     return (n:ame)
 
 fname :: Parser Name
 fname =
-  do f <- lexeme $ startsWith lower
+  do f <- startsWith lower
      if     isReserved f
-       then fail $ "unexpected keyword : " ++ f
+       then fail $ "Unexpected keyword : " ++ f
        else return f
+
+vname :: Parser Name
+vname = fname
 
 cname :: Parser ([Pattern] -> Pattern)
 cname =
-  do c <- lexeme $ startsWith upper
+  do c <- startsWith upper
      return $ Constructor c
 
-keyword :: String -> Parser ()
-keyword = void . lexeme . string
+pattern_ :: Parser Pattern
+pattern_ =
+  lexeme $
+    choice
+      [ Variable <$> vname
+      , cname <*> many pattern_
+      , keyword "dup" >> Duplicate <$> pattern_
+      , inParentheses pattern_
+      ]
+
+let_ :: Parser Expression
+let_ =
+  do keyword "let"
+     out  <- pattern_
+     symbol "="
+     f    <- fname
+     in_  <- pattern_
+     keyword "in"
+     body <- expression
+     return $ Let out f in_ body
+
+rlet :: Parser Expression
+rlet =
+  do keyword "rlet"
+     in_  <- pattern_
+     symbol "="
+     f    <- fname
+     out  <- pattern_
+     keyword "in"
+     body <- expression
+     return $ Let in_ f out body
+
+case_ :: Parser Expression
+case_ =
+  do keyword "case"
+     p  <- pattern_
+     keyword "of"
+     cs <- cases
+     return $ Case p cs
+  where
+    cases =
+      many1 $
+        do l <- pattern_
+           symbol "->"
+           e <- expression
+           symbol ";"
+           return (l, e)
+
+expression :: Parser Expression
+expression =
+  lexeme $
+    choice
+      [ Pattern <$> pattern_
+      , let_
+      , rlet
+      , case_
+      ]
+
+definition :: Parser Definition
+definition =
+  do keyword "fun"
+     f <- fname
+     p <- pattern_
+     symbol "="
+     e <- expression
+     return $ Function f p e
+
+program :: Parser Program
+program =
+  do ds <- many definition
+     eof
+     return ds
 
 -- Todo:
+-- [ ] Write tests.
 -- [ ] Syntactic abbreviations for lists and pairs.
 -- [ ] Documentation, once the syntax is locked.
 -- [ ] Indentation sensitive syntax.
+
