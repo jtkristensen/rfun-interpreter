@@ -23,7 +23,7 @@ jobs:
         path:    src/
         fail-on: suggestion # <- warning ?
 
-  tests:
+  calls-to-stack:
     runs-on: ubuntu-latest
     steps:
       - name: 'Check out repository'
@@ -35,4 +35,12 @@ jobs:
           ghc-version:   '8.10.7'
           enable-stack:  true
           stack-version: '2.7.3'
-      - run: stack test --fast
+
+      - name: 'Build pedantically'
+        run: stack build --pedantic
+
+      - name: 'Run tests'
+        run: stack test --fast
+
+      # - name: 'Documentation'
+      #   run stack haddock
