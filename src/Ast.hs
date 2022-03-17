@@ -22,10 +22,11 @@ module Ast where
 type Name       = String
 type FName      = Name
 type VName      = Name
-type Program    = [Definition]
 type Body       = Expression
 type InPattern  = Pattern
 type OutPattern = Pattern
+
+type Program    = [Definition]
 
 newtype Definition
   = Function { f :: FName, p :: Pattern, e :: Body }
@@ -51,3 +52,4 @@ data Value
 -- Todo:
 -- [ ] Pretty printer?
 -- [ ] What instances.
+-- [ ] Documentation for syntactic parts (once they have been decided).
