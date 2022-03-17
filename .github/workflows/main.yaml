@@ -11,7 +11,8 @@ jobs:
   hlint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - name: 'Check out repository'
+      uses: actions/checkout@v2
 
     - name: 'Set up HLint'
       uses: haskell/actions/hlint-setup@v1
@@ -25,10 +26,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: 'Check out repository'
+        uses: actions/checkout@v2
 
       - name: 'Set up stack'
-      - uses: haskell/actions/setup@v1
+        uses: haskell/actions/setup@v1
         with:
           ghc-version:   '8.10.7'
           enable-stack:  true
