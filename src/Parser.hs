@@ -16,6 +16,8 @@ The current syntax is a bit clunky, but is mainly purposed with writing tests.
 
 module Parser where
 
+import Ast
+import Text.Parsec
 
 -- Todo:
 -- [ ] Syntactic abbreviations for lists and pairs.
