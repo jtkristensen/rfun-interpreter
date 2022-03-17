@@ -38,20 +38,20 @@ underscore :: Parser Char
 underscore =
   char '_'
 
-starts_with :: Parser Char -> Parser Name
-starts_with p =
+startsWith :: Parser Char -> Parser Name
+startsWith p =
   (:) <$> p <*> many (choice [ letter , digit , underscore ] )
 
 fname :: Parser Name
 fname =
-  do f <- lexeme $ starts_with lower
+  do f <- lexeme $ startsWith lower
      if     isReserved f
        then fail $ "unexpected keyword : " ++ f
        else return f
 
 cname :: Parser ([Pattern] -> Pattern)
 cname =
-  do c <- lexeme $ starts_with upper
+  do c <- lexeme $ startsWith upper
      return $ Constructor c
 
 keyword :: String -> Parser ()
