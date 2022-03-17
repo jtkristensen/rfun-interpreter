@@ -18,16 +18,19 @@ module Parser where
 
 import Ast
 import Text.Parsec
-import Text.Parsec.Char ( lower, upper )
+import Data.Char
+  ( isLower
+  , isUpper
+  , isSpace
+  )
 
-type Indentation = Int
-type Parser      = Parsec String Indentation
+type Parser = Parsec String ()
 
 lexeme :: Parser a -> Parser a
 lexeme p = p >>= \a -> many space >> return a
 
 reserved :: [ Name ]
-reserved = [ "let", "in", "rlet", "case", "dup" ]
+reserved = [ "fun", "let", "in", "rlet", "case", "dup" ]
 
 isReserved :: Name -> Bool
 isReserved name = name `elem` reserved
@@ -35,19 +38,22 @@ isReserved name = name `elem` reserved
 underscore :: Parser Char
 underscore = char '_'
 
-name :: Parser Name
-name =
-  do head <- lower
-     tail <- many (letter <|> digit <|> underscore)
-     return (head : tail)
+starts_with :: Parser Char -> Parser Name
+starts_with p = (:) <$> p <*> many (choice [ letter , digit , underscore ] )
 
-ident :: Parser Name
-ident = try $
-  do f <- lexeme name
+fname :: Parser Name
+fname =
+  do f <- lexeme $ starts_with lower
      if     isReserved f
        then fail $ "unexpected keyword : " ++ f
        else return f
 
+cname :: Parser ([Pattern] -> Pattern)
+cname =
+  do c <- lexeme $ starts_with upper
+     return $ Constructor c
 
 -- Todo:
 -- [ ] Syntactic abbreviations for lists and pairs.
+-- [ ] Documentation, once the syntax is locked.
+-- [ ] Indentation sensitive syntax.
