@@ -23,7 +23,7 @@ jobs:
         path:    src/
         fail-on: suggestion # <- warning ?
 
-  test:
+  tests:
     runs-on: ubuntu-latest
     steps:
       - name: 'Check out repository'
@@ -35,4 +35,4 @@ jobs:
           ghc-version:   '8.10.7'
           enable-stack:  true
           stack-version: '2.7.3'
-      - run: stack test --fast --pedantic
+      - run: stack test --fast
