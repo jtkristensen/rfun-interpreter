@@ -43,7 +43,7 @@ name =
 
 ident :: Parser Name
 ident = try $
-  do f <- name
+  do f <- lexeme name
      if     isReserved f
        then fail $ "unexpected keyword : " ++ f
        else return f
