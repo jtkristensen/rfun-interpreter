@@ -18,6 +18,7 @@ module Parser where
 
 import Ast
 import Text.Parsec
+import Control.Monad (void)
 
 type Parser = Parsec String ()
 
@@ -52,6 +53,9 @@ cname :: Parser ([Pattern] -> Pattern)
 cname =
   do c <- lexeme $ starts_with upper
      return $ Constructor c
+
+keyword :: String -> Parser ()
+keyword = void . lexeme . string
 
 -- Todo:
 -- [ ] Syntactic abbreviations for lists and pairs.
