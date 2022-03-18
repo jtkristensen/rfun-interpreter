@@ -143,7 +143,7 @@ rlet =
      f    <- fname
      out  <- pattern_
      keyword "in"
-     Let in_ f out <$> expression
+     RLet in_ f out <$> expression
 
 case_ :: Parser Expression
 case_ =
