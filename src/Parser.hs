@@ -29,25 +29,31 @@ import Ast
 import Text.Parsec
 import Control.Monad (void)
 
+-- Shorthand.
 type Parser = Parsec String ()
+
+-- For now, the meta data is the cursor start and end position from where
+-- the entity was parsed (used for error messages).
+type Info = (SourcePos, SourcePos)
 
 -- * Implementation
 
-program :: Parser Program
+program :: Parser (Program Info)
 program =
   do ds <- many definition
      eof
-     return ds
+     return $ Program ds
 
-definition :: Parser Definition
+definition :: Parser (Definition Info)
 definition =
+  info $
   do keyword "fun"
      f <- fname
      p <- pattern_
      symbol "="
      Function f p <$> expression
 
-expression :: Parser Expression
+expression :: Parser (Expression Info)
 expression =
   lexeme $
     choice
@@ -57,17 +63,17 @@ expression =
       , case_
       ]
 
-pattern_ :: Parser Pattern
+pattern_ :: Parser (Pattern Info)
 pattern_ =
   lexeme $
     choice
-      [ cname <*> (chainl (return <$> pattern_) (return mappend) [])
-      , Variable <$> vname
-      , keyword "dup" >> Duplicate <$> pattern_
+      [ info $ constructor <*> (chainl (fmap return pattern_) (return mappend) [])
+      , info $ keyword "dup" >> Duplicate <$> pattern_
+      , info $ Variable <$> vname
       , inParentheses pattern_
       ]
 
--- * Details
+-- -- * Details
 
 lexeme :: Parser a -> Parser a
 lexeme p =
@@ -110,23 +116,31 @@ startsWith :: Parser Char -> Parser Name
 startsWith p =
   (:) <$> p <*> name
 
+vname :: Parser Name
+vname = startsWith lower
+
 fname :: Parser Name
 fname =
-  do f <- startsWith lower
+  do f <- vname
      if     isReserved f
        then fail $ "Unexpected keyword : " ++ f
        else return f
 
-vname :: Parser Name
-vname = fname
-
-cname :: Parser ([Pattern] -> Pattern)
-cname =
+constructor :: Parser ([Pattern meta] -> meta -> Pattern meta)
+constructor =
   do c <- startsWith upper
      return $ Constructor c
 
-let_ :: Parser Expression
+info :: Parser (Info -> a) -> Parser a
+info p =
+  do i <- getPosition
+     m <- p
+     j <- getPosition
+     return (m (i, j))
+
+let_ :: Parser (Expression Info)
 let_ =
+  info $
   do keyword "let"
      out  <- pattern_
      symbol "="
@@ -135,8 +149,9 @@ let_ =
      keyword "in"
      Let out f in_ <$> expression
 
-rlet :: Parser Expression
+rlet :: Parser (Expression Info)
 rlet =
+  info $
   do keyword "rlet"
      in_  <- pattern_
      symbol "="
@@ -145,9 +160,10 @@ rlet =
      keyword "in"
      RLet in_ f out <$> expression
 
-case_ :: Parser Expression
+case_ :: Parser (Expression Info)
 case_ =
-     Case <$> (keyword "case" >> pattern_) <*> (keyword "of" >> cases)
+  info $
+  Case <$> (keyword "case" >> pattern_) <*> (keyword "of" >> cases)
   where
     cases =
       many1 $
