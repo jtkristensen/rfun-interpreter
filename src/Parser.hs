@@ -67,7 +67,7 @@ pattern_ :: Parser (Pattern Info)
 pattern_ =
   lexeme $
     choice
-      [ info $ constructor <*> (chainl (fmap return pattern_) (return mappend) [])
+      [ info $ constructor <*> chainl (fmap return pattern_) (return mappend) []
       , info $ keyword "dup" >> Duplicate <$> pattern_
       , info $ Variable <$> vname
       , inParentheses pattern_
@@ -175,7 +175,7 @@ case_ =
 
 -- Todo:
 -- [ ] Write tests.
--- [ ] Syntactic abbreviations for lists and pairs.
+-- [ ] Syntactic abbreviations for lists and pairs?
 -- [ ] Documentation, once the syntax is locked.
--- [ ] Indentation sensitive syntax.
+-- [ ] Indentation sensitive syntax?
 

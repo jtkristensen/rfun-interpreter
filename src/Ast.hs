@@ -39,7 +39,7 @@ type OutPattern meta = Pattern    meta
 --   and for conveniently storing the output from analysis that relate to
 --   program points.
 
-data Program            meta
+newtype Program meta
   = Program [Definition meta]
   deriving (Show, Eq, Functor)
 
@@ -47,10 +47,10 @@ data Definition                               meta
   = Function FName (Pattern meta) (Body meta) meta
   deriving (Show, Eq, Functor)
 
-data Pattern                           meta
-  = Variable    VName                  meta
-  | Constructor Name [(Pattern meta)]  meta
-  | Duplicate   (Pattern meta)         meta
+data Pattern                         meta
+  = Variable    VName                meta
+  | Constructor Name [Pattern meta]  meta
+  | Duplicate   (Pattern meta)       meta
   deriving (Show, Eq, Functor)
 
 data Expression                                                meta
@@ -91,3 +91,9 @@ data Value
 -- [ ] Documentation for syntactic parts (once they have been decided)?
 -- [ ] What about equality ?
 -- [ ] Pretty printer ?
+-- [ ] Extend to express actors.
+-- [ ] Extend with send/unsend.
+-- [ ] Extend with recieve/unrecieve.
+-- [ ] Extend to include lambdas.
+-- [ ] Extend with datatype definitions.
+-- [ ] Extend with type declarations.
