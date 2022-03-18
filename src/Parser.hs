@@ -45,8 +45,7 @@ definition =
      f <- fname
      p <- pattern_
      symbol "="
-     e <- expression
-     return $ Function f p e
+     Function f p <$> expression
 
 expression :: Parser Expression
 expression =
@@ -84,21 +83,24 @@ reserved =
   ]
 
 isReserved :: Name -> Bool
-isReserved name =
-  name `elem` reserved
+isReserved = flip elem reserved
 
 symbol :: String -> Parser ()
 symbol s = void $ lexeme $ string s
 
 keyword :: String -> Parser ()
 keyword k =
-  if   k `elem` reserved
-  then symbol k
-  else fail $ "Internal error (unexpected keyword) : " ++ k
+  void $ lexeme $ try $
+  do _ <- string k
+     notFollowedBy name
 
 underscore :: Parser Char
 underscore =
   char '_'
+
+name :: Parser Name
+name =
+  lexeme $ many (choice [ letter , digit , underscore ] )
 
 inParentheses :: Parser a -> Parser a
 inParentheses =
@@ -106,10 +108,7 @@ inParentheses =
 
 startsWith :: Parser Char -> Parser Name
 startsWith p =
-  lexeme $
-  do n   <- p
-     ame <- many (choice [ letter , digit , underscore ] )
-     return (n:ame)
+  (:) <$> p <*> name
 
 fname :: Parser Name
 fname =
@@ -134,8 +133,7 @@ let_ =
      f    <- fname
      in_  <- pattern_
      keyword "in"
-     body <- expression
-     return $ Let out f in_ body
+     Let out f in_ <$> expression
 
 rlet :: Parser Expression
 rlet =
@@ -145,16 +143,11 @@ rlet =
      f    <- fname
      out  <- pattern_
      keyword "in"
-     body <- expression
-     return $ Let in_ f out body
+     Let in_ f out <$> expression
 
 case_ :: Parser Expression
 case_ =
-  do keyword "case"
-     p  <- pattern_
-     keyword "of"
-     cs <- cases
-     return $ Case p cs
+     Case <$> (keyword "case" >> pattern_) <*> (keyword "of" >> cases)
   where
     cases =
       many1 $
