@@ -61,7 +61,7 @@ pattern_ :: Parser Pattern
 pattern_ =
   lexeme $
     choice
-      [ cname <*> many pattern_
+      [ cname <*> (chainl (return <$> pattern_) (return mappend) [])
       , Variable <$> vname
       , keyword "dup" >> Duplicate <$> pattern_
       , inParentheses pattern_
