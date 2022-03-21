@@ -25,6 +25,7 @@ module Analysis where
 -- [ ] Repeated variables in patterns.
 -- [ ] Each variable bound before use.
 -- [ ] Variables used linearily in each branch.
+-- [ ] Check syntactic orthogonality in case-expressions.
 
 -- Future:
 -- [ ] Typeinference (constraint solver).
