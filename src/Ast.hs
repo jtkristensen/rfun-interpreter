@@ -91,6 +91,8 @@ data Value
 -- [ ] Documentation for syntactic parts (once they have been decided)?
 -- [ ] What about equality ?
 -- [ ] Pretty printer ?
+
+-- Extensions will happen via a different Ast.
 -- [ ] Extend to express actors.
 -- [ ] Extend with send/unsend.
 -- [ ] Extend with recieve/unrecieve.

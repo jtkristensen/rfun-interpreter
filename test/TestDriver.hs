@@ -6,13 +6,23 @@ import Test.Tasty.HUnit
 import Data.List
 import Data.Ord
 
+import CoreParserTests
+
 main = defaultMain tests
 
 tests :: TestTree
-tests = testGroup "Tests" [properties, unitTests]
+tests =
+  testGroup "Tests"
+    [ coreParserTests
+    , properties
+    ]
 
 properties :: TestTree
-properties = testGroup "Properties" [scProps, qcProps]
+properties =
+  testGroup "Properties"
+    [ scProps
+    , qcProps
+    ]
 
 scProps = testGroup "(checked by SmallCheck)"
   [ SC.testProperty "sort == sort . reverse" $
@@ -34,13 +44,4 @@ qcProps = testGroup "(checked by QuickCheck)"
   -- , QC.testProperty "Fermat's last theorem" $
   --     \x y z n ->
   --       (n :: Integer) >= 3 QC.==> x^n + y^n /= (z^n :: Integer)
-  ]
-
-unitTests = testGroup "Unit tests"
-  [ testCase "List comparison (different length)" $
-      [1, 2, 3] `compare` [1,2] @?= GT
-
-  -- the following test does not hold
-  -- , testCase "List comparison (same length)" $
-  --     [1, 2, 3] `compare` [1,2,2] @?= LT
   ]

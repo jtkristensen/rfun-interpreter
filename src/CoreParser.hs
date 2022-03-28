@@ -1,7 +1,7 @@
 {-|
 
-Module      : Parser
-Description : This is a parser for the RCPL language.
+Module      : CoreParser
+Description : This is a parser for the RFun Core language.
 Copyright   : Joachim Tilsted Kristensen
               Michael Kirkedal
               Eric Jul
@@ -21,9 +21,12 @@ fname      ::= <legal function names>
 vname      ::= <legal variable names>
 cname      ::= <legal constructor names>
 
+Additionally, we support two built-in datatype constructors.
+That are just syntactic sugar for regular ones.
+
 -}
 
-module Parser where
+module CoreParser where
 
 import Ast
 import Text.Parsec
@@ -38,9 +41,15 @@ type Info = (SourcePos, SourcePos)
 
 -- * Implementation
 
+parseFromFile :: FilePath -> IO (Either ParseError (Program Info))
+parseFromFile fileName =
+  do input <- readFile fileName
+     return $ runParser program () fileName input
+
 program :: Parser (Program Info)
 program =
-  do ds <- many definition
+  do lexeme $ return ()
+     ds <- many definition
      eof
      return $ Program ds
 
@@ -61,6 +70,7 @@ expression =
       , let_
       , rlet
       , case_
+      , inParentheses expression
       ]
 
 pattern_ :: Parser (Pattern Info)
@@ -70,15 +80,23 @@ pattern_ =
       [ info $ constructor <*> chainl (fmap return pattern_) (return mappend) []
       , info $ keyword "dup" >> Duplicate <$> pattern_
       , info $ Variable <$> vname
+      , info   builtInTuple
+      , info   builtInList
       , inParentheses pattern_
       ]
 
 -- -- * Details
 
+comment :: Parser ()
+comment =
+  do try  $ string "--"
+     many $ noneOf "\n"
+     return ()
+
 lexeme :: Parser a -> Parser a
 lexeme p =
   do a <- p
-     _ <- many space
+     many (choice [ comment, void space ])
      return a
 
 reserved :: [ Name ]
@@ -97,16 +115,19 @@ symbol s = void $ lexeme $ string s
 keyword :: String -> Parser ()
 keyword k =
   void $ lexeme $ try $
-  do _ <- string k
-     notFollowedBy name
+  do string k
+     notFollowedBy charAllowedInName
 
 underscore :: Parser Char
 underscore =
   char '_'
 
+charAllowedInName :: Parser Char
+charAllowedInName =
+  choice [ letter , digit , underscore ]
+
 name :: Parser Name
-name =
-  lexeme $ many (choice [ letter , digit , underscore ] )
+name = lexeme $ many charAllowedInName
 
 inParentheses :: Parser a -> Parser a
 inParentheses =
@@ -130,6 +151,26 @@ constructor :: Parser ([Pattern meta] -> meta -> Pattern meta)
 constructor =
   do c <- startsWith upper
      return $ Constructor c
+
+builtInTuple :: Parser (Info -> Pattern Info)
+builtInTuple =
+  do symbol "{"
+     ps <- chainr1 (fmap return pattern_) (symbol "," >> return (++))
+     symbol "}"
+     return $ Constructor ("builtin_Tuple" ++ show (length ps)) ps
+
+builtInList :: Parser (Info -> Pattern Info)
+builtInList =
+  do contents <-
+       choice
+         [ between (symbol "[") (symbol "]") $
+           choice
+             [ chainr1 (fmap return pattern_) (symbol "," >> return (++))
+             , return []
+             ]
+         , chainr1 (fmap return pattern_) (symbol "::" >> return (++))
+         ]
+     return $ Constructor "builtin_List" contents
 
 info :: Parser (Info -> a) -> Parser a
 info p =

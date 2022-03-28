@@ -1,0 +1,6 @@
+-- The following is the syntax for decalaring a function.
+
+fun id x = x
+
+-- The purpose of this program has been to see that we
+-- can parse it.
