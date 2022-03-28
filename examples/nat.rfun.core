@@ -6,3 +6,12 @@ fun inc n = S n
 
 fun dec n =
   rlet m = inc n in m
+
+fun add p =
+  case p of
+    {O  , n} -> n ;
+    {S m, n} -> let k = add {m,n} in S k ;
+
+fun sub { m , n } =
+  rlet k = add { m,n } in k
+

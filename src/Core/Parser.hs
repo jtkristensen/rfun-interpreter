@@ -154,9 +154,8 @@ constructor =
 
 builtInTuple :: Parser (Info -> Pattern Info)
 builtInTuple =
-  do symbol "{"
-     ps <- chainr1 (fmap return pattern_) (symbol "," >> return (++))
-     symbol "}"
+  do ps <- between (symbol "{") (symbol "}") $
+       chainr1 (fmap return pattern_) (symbol "," >> return (++))
      return $ Constructor ("builtin_Tuple" ++ show (length ps)) ps
 
 builtInList :: Parser (Info -> Pattern Info)

@@ -37,6 +37,9 @@ _rlet x f y e = RLet x f y e ()
 _let :: Pattern () -> FName -> Pattern () -> Expression () -> Expression ()
 _let y f x e = Let y f x e ()
 
+_case :: Pattern () -> [(Pattern (), Body ())] -> Expression ()
+_case p ps = Case p ps ()
+
 -- Utility functions.
 run :: Parser a -> String -> Either ParseError a
 run p = runParser p () "stdin"
@@ -88,11 +91,26 @@ exampleFiles =
   testGroup "Parsing the files located in the `examples` folder."
     [ fileExample "./examples/single_definition.rfun.core" $
       Program
-        [ fun "id" (var "x") (pat $ var "x")
+        [ fun "id" x (pat x)
         ]
     , fileExample "./examples/nat.rfun.core" $
       Program
-        [ fun "inc" (var "n") (pat $ con "S" [var "n"])
-        , fun "dec" (var "n") (_rlet (var "m") "inc" (var "n") (pat $ var "m"))
+        [ fun "inc" n $ pat $ s [n]
+        , fun "dec" n $ _rlet m "inc" n (pat m)
+        , fun "add" p $
+          _case p
+             [(t2 [o, n], pat n)
+             ,(t2 [s [m], n], _let k "add" (t2 [m, n]) (pat $ s [k]))
+             ]
+        , fun "sub" (t2 [ m, n]) (_rlet k "add" (t2 [m, n]) (pat k))
         ]
     ]
+    where
+      x  = var "x"
+      m  = var "m"
+      n  = var "n"
+      k  = var "k"
+      p  = var "p"
+      o  = con "O" []
+      s  = con "S"
+      t2 = con "builtin_Tuple2"
