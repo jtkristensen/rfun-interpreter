@@ -31,6 +31,12 @@ pat = Pattern
 con :: String -> [Pattern ()] -> Pattern ()
 con c ps = Constructor c ps ()
 
+_rlet :: Pattern () -> FName -> Pattern () -> Expression () -> Expression ()
+_rlet x f y e = RLet x f y e ()
+
+_let :: Pattern () -> FName -> Pattern () -> Expression () -> Expression ()
+_let y f x e = Let y f x e ()
+
 -- Utility functions.
 run :: Parser a -> String -> Either ParseError a
 run p = runParser p () "stdin"
@@ -70,6 +76,10 @@ individualComponents =
         positive pattern_
           "S (S n)"
           (con "S" [con "S" [var "n"]])
+    , testCase "Constructors don't eat keywords" $
+        positive (pattern_ >>= \p -> const p <$> keyword "fun")
+          "S n fun"
+          (con "S" [var "n"])
     ]
 
 
@@ -80,8 +90,9 @@ exampleFiles =
       Program
         [ fun "id" (var "x") (pat $ var "x")
         ]
-    -- , fileExample "./examples/nat.rfun.core" $
-    --   Program
-    --     [ fun "inc" (var "n") (pat $ con "S" [var "n"])
-    --     ]
+    , fileExample "./examples/nat.rfun.core" $
+      Program
+        [ fun "inc" (var "n") (pat $ con "S" [var "n"])
+        , fun "dec" (var "n") (_rlet (var "m") "inc" (var "n") (pat $ var "m"))
+        ]
     ]

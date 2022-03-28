@@ -2,7 +2,7 @@
 -- We represent natural numbers by the implicitly predefined datatype
 -- data Nat = O | S Nat, in the following operations on such Naturals
 
-fun inc n = S
+fun inc n = S n
 
--- fun dec n = rlet m = inc n in m
-
+fun dec n =
+  rlet m = inc n in m

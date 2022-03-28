@@ -66,21 +66,22 @@ expression :: Parser (Expression Info)
 expression =
   lexeme $
     choice
-      [ Pattern <$> pattern_
-      , let_
+      [ let_
       , rlet
       , case_
       , inParentheses expression
+      , Pattern <$> pattern_
       ]
 
 pattern_ :: Parser (Pattern Info)
 pattern_ =
   lexeme $
     choice
-      [ info $ constructor <*> chainl1 (fmap return pattern_) (return mappend)
-      , info $ keyword "dup" >> Duplicate <$> pattern_
-      , info $ Variable <$> vname
+      [ info $ keyword "dup" >> Duplicate <$> pattern_
+      , info $ Variable <$> fname
       , info   builtInTuple
+      , info $ constructor <*>
+          chainl (fmap return pattern_) (return mappend) []
       , inParentheses pattern_
       ]
 
@@ -109,12 +110,12 @@ isReserved :: Name -> Bool
 isReserved = flip elem reserved
 
 symbol :: String -> Parser ()
-symbol s = void $ lexeme $ string s
+symbol s = void $ lexeme $ try $ string s
 
 keyword :: String -> Parser ()
 keyword k =
-  void $ lexeme $ try $
-  do _ <- string k
+  void $ lexeme $
+  do _ <- try $ string k
      notFollowedBy charAllowedInName
 
 underscore :: Parser Char
@@ -123,7 +124,7 @@ underscore =
 
 charAllowedInName :: Parser Char
 charAllowedInName =
-  choice [ letter , digit , underscore ]
+  try $ choice [ letter , digit , underscore ]
 
 name :: Parser Name
 name = lexeme $ many charAllowedInName
@@ -137,11 +138,11 @@ startsWith p =
   (:) <$> p <*> name
 
 vname :: Parser Name
-vname = startsWith lower
+vname = fname
 
 fname :: Parser Name
-fname =
-  do f <- vname
+fname = try $
+  do f <- startsWith lower
      if     isReserved f
        then fail $ "Unexpected keyword : " ++ f
        else return f
