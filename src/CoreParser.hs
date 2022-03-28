@@ -77,11 +77,10 @@ pattern_ :: Parser (Pattern Info)
 pattern_ =
   lexeme $
     choice
-      [ info $ constructor <*> chainl (fmap return pattern_) (return mappend) []
+      [ info $ constructor <*> chainl1 (fmap return pattern_) (return mappend)
       , info $ keyword "dup" >> Duplicate <$> pattern_
       , info $ Variable <$> vname
       , info   builtInTuple
-      , info   builtInList
       , inParentheses pattern_
       ]
 
@@ -89,14 +88,14 @@ pattern_ =
 
 comment :: Parser ()
 comment =
-  do try  $ string "--"
-     many $ noneOf "\n"
+  do _ <- try  $ string "--"
+     _ <- many $ noneOf "\n"
      return ()
 
 lexeme :: Parser a -> Parser a
 lexeme p =
   do a <- p
-     many (choice [ comment, void space ])
+     _ <- many (choice [ comment, void space ])
      return a
 
 reserved :: [ Name ]
@@ -115,7 +114,7 @@ symbol s = void $ lexeme $ string s
 keyword :: String -> Parser ()
 keyword k =
   void $ lexeme $ try $
-  do string k
+  do _ <- string k
      notFollowedBy charAllowedInName
 
 underscore :: Parser Char
@@ -161,16 +160,13 @@ builtInTuple =
 
 builtInList :: Parser (Info -> Pattern Info)
 builtInList =
-  do contents <-
-       choice
-         [ between (symbol "[") (symbol "]") $
-           choice
-             [ chainr1 (fmap return pattern_) (symbol "," >> return (++))
-             , return []
-             ]
-         , chainr1 (fmap return pattern_) (symbol "::" >> return (++))
-         ]
-     return $ Constructor "builtin_List" contents
+  Constructor "builtin_List" <$>
+    between (symbol "[") (symbol "]")
+      (choice
+        [ chainr1 (fmap return pattern_) (symbol "," >> return (++))
+        , return []
+        ]
+      )
 
 info :: Parser (Info -> a) -> Parser a
 info p =
