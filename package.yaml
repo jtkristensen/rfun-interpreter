@@ -38,7 +38,7 @@ executables:
 
 tests:
   rcpl-test:
-    main:                TestDriver.hs
+    main:                Driver.hs
     source-dirs:         test
     ghc-options:
     - -threaded

@@ -27,8 +27,8 @@ source-repository head
 library
   exposed-modules:
       Analysis
-      Ast
-      CoreParser
+      Core.Ast
+      Core.Parser
   other-modules:
       Paths_rcpl
   hs-source-dirs:
@@ -61,9 +61,9 @@ executable rcpl-exe
 
 test-suite rcpl-test
   type: exitcode-stdio-1.0
-  main-is: TestDriver.hs
+  main-is: Driver.hs
   other-modules:
-      CoreParserTests
+      Core.ParserTests
       Paths_rcpl
   hs-source-dirs:
       test

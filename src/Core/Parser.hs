@@ -1,6 +1,6 @@
 {-|
 
-Module      : CoreParser
+Module      : Core.Parser
 Description : This is a parser for the RFun Core language.
 Copyright   : Joachim Tilsted Kristensen
               Michael Kirkedal
@@ -26,9 +26,9 @@ That are just syntactic sugar for regular ones.
 
 -}
 
-module CoreParser where
+module Core.Parser where
 
-import Ast
+import Core.Ast
 import Text.Parsec
 import Control.Monad (void)
 

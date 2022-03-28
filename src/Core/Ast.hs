@@ -18,7 +18,7 @@ Gent, Beligium, July 2022).
 
 -}
 
-module Ast where
+module Core.Ast where
 
 -- * Abbreviations.
 
