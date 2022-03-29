@@ -60,7 +60,7 @@ data Expression                                                meta
   | Case (Pattern meta) [(Pattern meta, Body meta)]            meta
   deriving (Show, Eq, Functor)
 
--- * A type class for extracting meta data .
+-- * A type class for extracting meta data.
 
 class Meta m where
   meta :: m a -> a
