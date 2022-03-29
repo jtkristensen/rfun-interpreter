@@ -28,6 +28,7 @@ library
   exposed-modules:
       Analysis
       Core.Ast
+      Core.Interpreter
       Core.Parser
   other-modules:
       Paths_rcpl
