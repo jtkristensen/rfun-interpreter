@@ -7,6 +7,9 @@ fun inc n = S n
 fun dec n =
   rlet m = inc n in m
 
+-- Note, that this should not work, and that the error message should be
+-- about unifiable output patterns (not syntactically orthogonal).
+
 fun add p =
   case p of
     {O  , n} -> n ;
@@ -14,4 +17,3 @@ fun add p =
 
 fun sub { m , n } =
   rlet k = add { m,n } in k
-
