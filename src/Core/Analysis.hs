@@ -45,7 +45,7 @@ type Linearity meta
   = Analysis () () [LinearityViolation meta] [Name]
 
 programLinearity :: Program meta -> Linearity meta ()
-programLinearity (Program fs) = void $ mapM definitionalLinearity fs
+programLinearity (Program fs) = mapM_ definitionalLinearity fs
 
 definitionalLinearity :: Definition meta -> Linearity meta ()
 definitionalLinearity (Function _ p e _) =
