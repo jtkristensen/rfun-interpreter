@@ -7,6 +7,7 @@ import Data.List
 import Data.Ord
 
 import Core.ParserTests
+import Core.AnalysisTests
 
 main = defaultMain tests
 
@@ -14,6 +15,7 @@ tests :: TestTree
 tests =
   testGroup "Tests"
     [ coreParserTests
+    , coreAnalysisTests
     -- , properties
     ]
 
