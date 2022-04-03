@@ -93,9 +93,9 @@ data Value
 -- [ ] Pretty printer ?
 
 -- Extensions will happen via a different Ast.
+-- [ ] Extend with datatype definitions.
 -- [ ] Extend to express actors.
 -- [ ] Extend with send/unsend.
 -- [ ] Extend with recieve/unrecieve.
 -- [ ] Extend to include lambdas.
--- [ ] Extend with datatype definitions.
 -- [ ] Extend with type declarations.

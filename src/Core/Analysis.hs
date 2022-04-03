@@ -11,9 +11,9 @@ Portability : POSIX
 -}
 
 -- Todo:
--- [ ] Repeated variables in patterns.
--- [ ] Each variable bound before use.
--- [ ] Variables used linearily in each branch.
+-- [x] Repeated variables in patterns.
+-- [x] Each variable bound before use.
+-- [x] Variables used linearily in each branch.
 -- [ ] Check syntactic orthogonality in case-expressions.
 
 -- Future:
@@ -33,17 +33,18 @@ import Control.Monad.Except
 type Analysis error read write state
   = (RWST read write state) (Except error)
 
-type InternalError = String
-
+-- The bindings analysis checks that patterns are regular, makes sure that
+-- variables are only used once, and that no definitions are conflicting or
+-- ambiguous.
 type BindingsAnalysis meta
   = Analysis
       InternalError            -- Something impossible happened.
       FunctionName             -- We are currently analysing this function.
       [BindingsViolation meta] -- These violations were found thus far.
-      (CurrentBindings meta)   -- The current environment looks like this.
+      (CurrentBindings meta)   -- The environment looks like this.
 
--- In this analysis, we check that all variables are used exactly once in
--- each branch of the program.
+type InternalError = String
+
 data BindingsViolation meta
   = LinearityViolation     FunctionName VariableName [meta] -- f x      = .. x .. x ..
   | DefinedButNotUsed      FunctionName VariableName  meta  -- f x      = ..
@@ -57,6 +58,8 @@ data CurrentBindings meta =
   , used  :: [(Name, meta)]
   }
 
+-- When a variable is bound in a pattern, we put it into the environment
+-- using this function.
 bind :: (Name, meta) -> BindingsAnalysis meta ()
 bind (x, m) =
   do environment <- get
@@ -72,6 +75,7 @@ remove1 x (x' : xs) =
     let (     xs' , out) = remove1 x xs
     in  (x' : xs' , out)
 
+-- Moves a bound variable into the used variables.
 unbind1 :: Name -> BindingsAnalysis meta ()
 unbind1 x =
   do environment <- get
@@ -81,26 +85,18 @@ unbind1 x =
        , used = meta' ++ used environment
        }
 
+-- Forgets that we used a variable.
 unuse1 :: Name -> BindingsAnalysis meta ()
 unuse1 x =
   do environment <- get
      let (used', _) = remove1 x $ used environment
      put $ environment { used = used' }
 
+-- Unbinds all variables.
 unbindAll :: Name -> BindingsAnalysis meta ()
 unbindAll x =
   do xs <- bound <$> get
      forM_ xs (const $ unbind1 x)
-
-forceUniqueNames :: BindingsAnalysis meta ()
-forceUniqueNames =
-  do xs <- bound <$> get
-     let xs' = choose1 xs
-     _  <- mapM_ (\(x, _) -> unbindAll x) xs'
-     mapM_ bind xs'
-  where
-     choose1 [               ] = [ ]
-     choose1 (x@(n, _) : rest) = x : filter ((/=n) . fst) (choose1 rest)
 
 bindingsInProgram :: Program meta -> BindingsAnalysis meta ()
 bindingsInProgram (Program fs) = mapM_ bindingsInDefinition fs
@@ -139,7 +135,6 @@ checkBindings p =
            [ ] -> throwError "Bottom!"
            [_] -> return ()
            ns' -> tell [ IrregularPattern f x $ map snd ns']
-     forceUniqueNames
 
 bindingsInExpression :: Expression meta -> BindingsAnalysis meta ()
 bindingsInExpression (Pattern p)               = bindingsInPattern p
