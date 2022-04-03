@@ -43,20 +43,114 @@ type BindingsAnalysis meta
       [BindingsViolation meta] -- These violations were found thus far.
       (CurrentBindings meta)   -- The environment looks like this.
 
-type InternalError = String
+type InternalError
+  = String
 
 data BindingsViolation meta
-  = LinearityViolation     FunctionName VariableName [meta] -- f x      = .. x .. x ..
+  = IrregularPattern       FunctionName VariableName [meta] -- f x .. x = ?
   | DefinedButNotUsed      FunctionName VariableName  meta  -- f x      = ..
   | UsedButNotDefined      FunctionName VariableName  meta  -- f ..     = .. x ..
+  | LinearityViolation     FunctionName VariableName [meta] -- f ?      = .. x .. x ..
   | ConflictingDefinitions FunctionName VariableName [meta] -- f x      = .. let x = ..
-  | IrregularPattern       FunctionName VariableName [meta] -- f x .. x = ...
 
-data CurrentBindings meta =
-  CurrentBindings
-  { bound :: [(Name, meta)]
-  , used  :: [(Name, meta)]
-  }
+data CurrentBindings meta
+  = CurrentBindings
+    { bound :: [(Name, meta)]
+    , used  :: [(Name, meta)]
+    }
+
+-- Does Bindings analysis.
+bindingsAnalysis ::
+  Program meta ->
+  Except (Either InternalError [BindingsViolation meta]) ()
+bindingsAnalysis p =
+  case runExcept (runRWST (bindingsOfProgram p) "" (CurrentBindings [] [])) of
+    (Left internalError) -> throwError (Left internalError)
+    (Right (_, _, []))   -> return ()
+    (Right (_, _, w ))   -> throwError (Right w)
+
+-- Performs bindings analysis on a program.
+bindingsOfProgram :: Program meta -> BindingsAnalysis meta ()
+bindingsOfProgram (Program fs) = mapM_ bindingsOfDefinition fs
+
+-- Performs bindings analysis on a function definition.
+bindingsOfDefinition :: Definition meta -> BindingsAnalysis meta ()
+bindingsOfDefinition (Function f p e _) =
+  do _  <- checkBindings p
+     put (CurrentBindings [] [])
+     local (const f) $ bindingsOfExpression e
+     environment <- get
+     forM_ (bound environment) $
+       \(x, m) -> do tell [ DefinedButNotUsed f x m ]
+                     unbind1 x
+     forM_ (used  environment) $ unuse1 . fst
+
+-- Performs bindings analysis on an expression.
+bindingsOfExpression :: Expression meta -> BindingsAnalysis meta ()
+bindingsOfExpression (Pattern p)               = bindingsOfPattern p
+bindingsOfExpression (Let output _ input  e _) =
+  do _ <- bindingsOfPattern  input
+     _ <- checkBindings     output
+     bindingsOfExpression e
+bindingsOfExpression (RLet input _ output e _) =
+  do _ <- bindingsOfPattern output
+     _ <- checkBindings      input
+     bindingsOfExpression e
+bindingsOfExpression (Case _ cases          _) =
+  do environment <- get
+     forM_ cases $
+       \(p, e) ->
+         do put environment
+            _ <- checkBindings p
+            bindingsOfExpression e
+
+-- Performs bindings analysis on a pattern.
+bindingsOfPattern :: Pattern meta -> BindingsAnalysis meta ()
+bindingsOfPattern (Constructor _ _ _) = undefined
+bindingsOfPattern (Duplicate   _ _  ) = undefined
+bindingsOfPattern (Variable x m)      =
+  do f  <- ask
+     -- Check that x is bound.
+     ms <- bound <$> get
+     case filter ((==x) . fst) ms of
+       [ ] -> tell [ UsedButNotDefined f x m ]
+       [_] -> return ()
+       ms' -> tell [ ConflictingDefinitions f x $ map snd ms' ]
+     -- Check that x is not already used.
+     xs <- used <$> get
+     case filter ((==x) . fst) xs of
+       [ ] -> return ()
+       xs' -> tell [ LinearityViolation f x $ m : map snd xs' ]
+     unbind1 x
+
+-- Returns the names that occur in a pattern.
+namesInPattern :: Pattern meta -> BindingsAnalysis meta [(Name, meta)]
+namesInPattern (Constructor _ ps _) = concat <$> mapM namesInPattern ps
+namesInPattern (Duplicate   p    _) = namesInPattern p
+namesInPattern (Variable    x    m) = return [(x, m)]
+
+-- Checks the bindings of a pattern to be bound.
+checkBindings :: Pattern meta -> BindingsAnalysis meta ()
+checkBindings p =
+  do f  <- ask
+     ns <- namesInPattern p
+     -- Check that the pattern itself is regular.
+     forM_ ns $
+       \(x, _) ->
+         case filter ((==x) . fst) ns of
+           [ ] -> throwError "Argh, we have quantum variables!"
+           [_] -> return ()
+           ns' -> tell [ IrregularPattern f x $ map snd ns']
+     ms <- bound <$> get
+     -- Check that out-bound variables don't redefine unused ones.
+     forM_ ms $
+       \(x, m) ->
+         tell $ map (\(_, m') -> ConflictingDefinitions f x [m, m']) $ filter ((==x) . fst) ns
+     us <- used <$> get
+     -- Reset `used` on variable rebindings.
+     forM_ us $
+       \(x, _) ->
+         mapM (const $ unuse1 x) $ filter ((==x) . fst) ns
 
 -- When a variable is bound in a pattern, we put it into the environment
 -- using this function.
@@ -64,16 +158,6 @@ bind :: (Name, meta) -> BindingsAnalysis meta ()
 bind (x, m) =
   do environment <- get
      put $ environment { bound = (x, m) : bound environment}
-
--- remove1 x [(y, my), (x, m0), (x, m1), (x, m2)] = ([(y, my), (x, m1), (x, m2)], [(x, m0)])
-remove1 :: Name -> [(Name, meta)] -> ([(Name, meta)], [(Name, meta)])
-remove1 x [       ] = ([], [])
-remove1 x (x' : xs) =
-  if   x == fst x'
-  then (xs, [x'])
-  else
-    let (     xs' , out) = remove1 x xs
-    in  (x' : xs' , out)
 
 -- Moves a bound variable into the used variables.
 unbind1 :: Name -> BindingsAnalysis meta ()
@@ -85,6 +169,13 @@ unbind1 x =
        , used = meta' ++ used environment
        }
 
+-- Unbinds all variables.
+unbindAll :: Name -> BindingsAnalysis meta ()
+unbindAll x =
+  do xs <- bound <$> get
+     forM_ xs (const $ unbind1 x)
+
+
 -- Forgets that we used a variable.
 unuse1 :: Name -> BindingsAnalysis meta ()
 unuse1 x =
@@ -92,82 +183,12 @@ unuse1 x =
      let (used', _) = remove1 x $ used environment
      put $ environment { used = used' }
 
--- Unbinds all variables.
-unbindAll :: Name -> BindingsAnalysis meta ()
-unbindAll x =
-  do xs <- bound <$> get
-     forM_ xs (const $ unbind1 x)
-
-bindingsInProgram :: Program meta -> BindingsAnalysis meta ()
-bindingsInProgram (Program fs) = mapM_ bindingsInDefinition fs
-
-bindingsInDefinition :: Definition meta -> BindingsAnalysis meta ()
-bindingsInDefinition (Function f p e _) =
-  do _  <- checkBindings p
-     put (CurrentBindings [] [])
-     local (const f) $ bindingsInExpression e
-     environment <- get
-     forM_ (bound environment) $
-       \(x, m) -> do tell [ DefinedButNotUsed f x m ]
-                     unbind1 x
-     forM_ (used  environment) $ unuse1 . fst
-
-namesInPattern :: Pattern meta -> BindingsAnalysis meta [(Name, meta)]
-namesInPattern (Constructor _ ps _) = concat <$> mapM namesInPattern ps
-namesInPattern (Duplicate   p    _) = namesInPattern p
-namesInPattern (Variable    x    m) = return [(x, m)]
-
-checkBindings :: Pattern meta -> BindingsAnalysis meta ()
-checkBindings p =
-  do f  <- ask
-     ns <- namesInPattern p
-     ms <- bound <$> get
-     -- Check that new bindings don't shadow old ones.
-     forM_ ms $
-       \(x, m) ->
-         case filter ((==x) . fst) ns of
-           [ ] -> return ()
-           ns' -> tell $ map (\(_, m') -> ConflictingDefinitions f x [m, m']) ns'
-     -- Check that the pattern is regular.
-     forM_ ns $
-       \(x, _) ->
-         case filter ((==x) . fst) ns of
-           [ ] -> throwError "Bottom!"
-           [_] -> return ()
-           ns' -> tell [ IrregularPattern f x $ map snd ns']
-
-bindingsInExpression :: Expression meta -> BindingsAnalysis meta ()
-bindingsInExpression (Pattern p)               = bindingsInPattern p
-bindingsInExpression (Let output f input  e _) =
-  do _ <- bindingsInPattern input
-     _ <- checkBindings output
-     bindingsInExpression e
-bindingsInExpression (RLet input f output e _) =
-  do _ <- bindingsInPattern output
-     _ <- checkBindings     input
-     bindingsInExpression e
-bindingsInExpression (Case p cases          _) =
-  do environment <- get
-     forM_ cases $
-       \(p, e) ->
-         do put environment
-            _ <- checkBindings p
-            bindingsInExpression e
-
-bindingsInPattern :: Pattern meta -> BindingsAnalysis meta ()
-bindingsInPattern (Constructor _ _ _) = undefined
-bindingsInPattern (Duplicate   _ _  ) = undefined
-bindingsInPattern (Variable x m)      =
-  do f  <- ask
-     -- Check that x is bound.
-     ms <- bound <$> get
-     case filter ((==x) . fst) ms of
-       [ ] -> tell [ UsedButNotDefined f x m ]
-       [_] -> return ()
-       ms' -> tell [ ConflictingDefinitions f x $ map snd ms' ]
-     -- Check that x is not already used.
-     xs <- bound <$> get
-     case filter ((==x) . fst) xs of
-       [ ] -> return ()
-       xs' -> tell [ LinearityViolation f x $ m : map snd xs' ]
-     unbind1 x
+-- remove1 x [(y, my), (x, m0), (x, m1), (x, m2)] = ([(y, my), (x, m1), (x, m2)], [(x, m0)])
+remove1 :: Name -> [(Name, meta)] -> ([(Name, meta)], [(Name, meta)])
+remove1 _ [       ] = ([], [])
+remove1 x (x' : xs) =
+  if   x == fst x'
+  then (xs, [x'])
+  else
+    let (     xs' , out) = remove1 x xs
+    in  (x' : xs' , out)
