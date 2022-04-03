@@ -45,10 +45,11 @@ type BindingsAnalysis meta
 -- In this analysis, we check that all variables are used exactly once in
 -- each branch of the program.
 data BindingsViolation meta
-  = LinearityViolation     FunctionName VariableName [meta] -- f x   = .. x .. x ..
-  | DefinedButNotUsed      FunctionName VariableName  meta  -- f x   = ..
-  | UsedButNotDefined      FunctionName VariableName  meta  -- f ..  = .. x ..
-  | ConflictingDefinitions FunctionName VariableName [meta] -- f x x = ...
+  = LinearityViolation     FunctionName VariableName [meta] -- f x      = .. x .. x ..
+  | DefinedButNotUsed      FunctionName VariableName  meta  -- f x      = ..
+  | UsedButNotDefined      FunctionName VariableName  meta  -- f ..     = .. x ..
+  | ConflictingDefinitions FunctionName VariableName [meta] -- f x      = .. let x = ..
+  | IrregularPattern       FunctionName VariableName [meta] -- f x .. x = ...
 
 data CurrentBindings meta =
   CurrentBindings
@@ -56,30 +57,44 @@ data CurrentBindings meta =
   , used  :: [(Name, meta)]
   }
 
-currentBindings :: BindingsAnalysis meta [(Name, meta)]
-currentBindings = bound <$> get
-
 bind :: (Name, meta) -> BindingsAnalysis meta ()
 bind (x, m) =
   do environment <- get
      put $ environment { bound = (x, m) : bound environment}
 
+-- remove1 x [(y, my), (x, m0), (x, m1), (x, m2)] = ([(y, my), (x, m1), (x, m2)], [(x, m0)])
+remove1 :: Name -> [(Name, meta)] -> ([(Name, meta)], [(Name, meta)])
+remove1 x [       ] = ([], [])
+remove1 x (x' : xs) =
+  if   x == fst x'
+  then (xs, [x'])
+  else
+    let (     xs' , out) = remove1 x xs
+    in  (x' : xs' , out)
+
 unbind1 :: Name -> BindingsAnalysis meta ()
 unbind1 x =
   do environment <- get
-     put $ environment { bound = remove1 x $ bound environment }
-  where
-     remove1 x [              ] = [ ]
-     remove1 x ((x', m) : xs) = if x == x' then xs else (x', m) : remove1 x xs
+     let (bound', meta') = remove1 x $ bound environment
+     put $ environment
+       { bound = bound'
+       , used = meta' ++ used environment
+       }
+
+unuse1 :: Name -> BindingsAnalysis meta ()
+unuse1 x =
+  do environment <- get
+     let (used', _) = remove1 x $ used environment
+     put $ environment { used = used' }
 
 unbindAll :: Name -> BindingsAnalysis meta ()
 unbindAll x =
-  do xs <- currentBindings
+  do xs <- bound <$> get
      forM_ xs (const $ unbind1 x)
 
 forceUniqueNames :: BindingsAnalysis meta ()
 forceUniqueNames =
-  do xs <- currentBindings
+  do xs <- bound <$> get
      let xs' = choose1 xs
      _  <- mapM_ (\(x, _) -> unbindAll x) xs'
      mapM_ bind xs'
@@ -92,9 +107,14 @@ bindingsInProgram (Program fs) = mapM_ bindingsInDefinition fs
 
 bindingsInDefinition :: Definition meta -> BindingsAnalysis meta ()
 bindingsInDefinition (Function f p e _) =
-  do _ <- checkBindings p
+  do _  <- checkBindings p
      put (CurrentBindings [] [])
      local (const f) $ bindingsInExpression e
+     environment <- get
+     forM_ (bound environment) $
+       \(x, m) -> do tell [ DefinedButNotUsed f x m ]
+                     unbind1 x
+     forM_ (used  environment) $ unuse1 . fst
 
 namesInPattern :: Pattern meta -> BindingsAnalysis meta [(Name, meta)]
 namesInPattern (Constructor _ ps _) = concat <$> mapM namesInPattern ps
@@ -105,20 +125,20 @@ checkBindings :: Pattern meta -> BindingsAnalysis meta ()
 checkBindings p =
   do f  <- ask
      ns <- namesInPattern p
-     ms <- currentBindings
+     ms <- bound <$> get
      -- Check that new bindings don't shadow old ones.
      forM_ ms $
        \(x, m) ->
          case filter ((==x) . fst) ns of
            [ ] -> return ()
-           ns' -> tell $ map (\(_, m') -> Shadowing f x (m, m')) ns'
-     -- Check that the pattern i regular.
+           ns' -> tell $ map (\(_, m') -> ConflictingDefinitions f x [m, m']) ns'
+     -- Check that the pattern is regular.
      forM_ ns $
        \(x, _) ->
          case filter ((==x) . fst) ns of
            [ ] -> throwError "Bottom!"
            [_] -> return ()
-           ns' -> tell [ ConflictingDefinitions f x $ map snd ns']
+           ns' -> tell [ IrregularPattern f x $ map snd ns']
      forceUniqueNames
 
 bindingsInExpression :: Expression meta -> BindingsAnalysis meta ()
@@ -145,13 +165,13 @@ bindingsInPattern (Duplicate   _ _  ) = undefined
 bindingsInPattern (Variable x m)      =
   do f  <- ask
      -- Check that x is bound.
-     ms <- currentBindings
+     ms <- bound <$> get
      case filter ((==x) . fst) ms of
        [ ] -> tell [ UsedButNotDefined f x m ]
        [_] -> return ()
        ms' -> tell [ ConflictingDefinitions f x $ map snd ms' ]
      -- Check that x is not already used.
-     xs <- currentBindings
+     xs <- bound <$> get
      case filter ((==x) . fst) xs of
        [ ] -> return ()
        xs' -> tell [ LinearityViolation f x $ m : map snd xs' ]
