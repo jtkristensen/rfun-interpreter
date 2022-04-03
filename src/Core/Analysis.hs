@@ -61,10 +61,10 @@ data CurrentBindings meta
     }
 
 -- Does Bindings analysis.
-bindingsAnalysis ::
+runBindingsAnalysis ::
   Program meta ->
   Except (Either InternalError [BindingsViolation meta]) ()
-bindingsAnalysis p =
+runBindingsAnalysis p =
   case runExcept (runRWST (bindingsOfProgram p) "" (CurrentBindings [] [])) of
     (Left internalError) -> throwError (Left internalError)
     (Right (_, _, []))   -> return ()
@@ -96,12 +96,13 @@ bindingsOfExpression (RLet input _ output e _) =
   do _ <- bindingsOfPattern output
      _ <- bindPattern      input
      bindingsOfExpression e
-bindingsOfExpression (Case _ cases          _) =
-  do environment <- get
+bindingsOfExpression (Case p0 cases          _) =
+  do _           <- bindingsOfPattern p0
+     environment <- get
      forM_ cases $
-       \(p, e) ->
+       \(p1, e) ->
          do put environment
-            _ <- bindPattern p
+            _ <- bindPattern p1
             bindingsOfExpression e
 
 -- Performs bindings analysis on a pattern.

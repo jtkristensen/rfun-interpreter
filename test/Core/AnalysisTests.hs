@@ -25,23 +25,34 @@ run = runParser program () "stdin"
 
 expectProgram ::
   (Eq e, Show e, Eq a, Show a)
-    => (Program SourceFileReference -> Except e a)
-    -> (Either e a -> Either e a)
-    -> Source
-    -> Either e a
+    => (Program SourceFileReference -> Except e a) -- The analysis.
+    -> (Either e a -> Either e a)                  -- Normalization.
+    -> Source                                      -- A source program.
+    -> Either e a                                  -- The expected analysis result.
     -> Assertion
 expectProgram analysis normalize src expected =
   case run src of
     (Left  err) -> assertBool ("<error>: " ++ show err) False
     (Right ast) -> normalize (runExcept $ analysis ast) @?= normalize expected
 
+titleOf :: Source -> String
+titleOf src =
+    if   length src' > 60
+    then take 60 src' ++ " .."
+    else src'
+  where
+    src' = minimalSpacing src
+    minimalSpacing (' ' : ' ' : s) = minimalSpacing $ ' ' : s
+    minimalSpacing (  s : rc     ) = s : minimalSpacing rc
+    minimalSpacing _               = ""
+
 passesBindings :: Source -> TestTree
 passesBindings src =
-  testCase src $ expectProgram bindingsAnalysis id src (return ())
+  testCase (titleOf src) $ expectProgram runBindingsAnalysis id src (return ())
 
 failsBindings :: Source -> TestTree
 failsBindings src =
-    testCase src $ expectProgram bindingsAnalysis norm src (Left (return []))
+    testCase (titleOf src) $ expectProgram runBindingsAnalysis norm src (Left (return []))
   where
     norm (Left (Right _)) = Left $ return []
     norm other            = other
@@ -52,6 +63,15 @@ positiveBindingsAnalysisTests =
       [ "fun id  x = x"
       , "fun inc n = S n"
       , "fun inc n = let n = s n in n"
+      , "fun add pair ="                                        ++
+        "  case pair of"                                        ++
+        "    (Pair    Z  n) -> Pair Z n;"                       ++
+        "    (Pair (S m) n) -> let (Pair m n) = add (Pair m n)" ++
+        "                      in  (Pair (S m) (S n));"
+      , "fun inc n = let  m = s n in m"
+      , "fun inc n = rlet n = s n in n"
+      , "fun inc n = let  m = s n in m"
+      , "fun inc n = rlet n = s n in n"
       ]
 
 negativeBindingsAnalysisTests =
