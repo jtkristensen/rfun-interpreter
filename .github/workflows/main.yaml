@@ -42,5 +42,5 @@ jobs:
       - name: 'Run tests'
         run: stack test --fast
 
-      - name: 'Build documentation'
-        run: stack haddock
+      # - name: 'Build documentation'
+      #   run: stack haddock
