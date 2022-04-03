@@ -37,22 +37,57 @@ type Analysis error read write state
 
 type InternalError = String
 
+type BindingsAnalysis meta
+  = Analysis
+      InternalError            -- Something impossible happened.
+      FunctionName             -- We are currently analysing this function.
+      [BindingsViolation meta] -- These violations were found thus far.
+      (CurrentBindings meta)   -- The current environment looks like this.
+
 -- In this analysis, we check that all variables are used exactly once in
 -- each branch of the program.
 data BindingsViolation meta
-  = LinearityViolation     FName Name [meta]       -- f x   = .. x .. x ..
-  | DefinedButNotUsed      FName Name meta         -- f x   = ..
-  | UsedButNotDefined      FName Name meta         -- f ..  = .. x ..
-  | Shadowing              FName Name (meta, meta) -- f x   = let x ..
-  | ConflictingDefinitions FName Name [meta]       -- f x x = ...
+  = LinearityViolation     FunctionName VariableName [meta] -- f x   = .. x .. x ..
+  | DefinedButNotUsed      FunctionName VariableName  meta  -- f x   = ..
+  | UsedButNotDefined      FunctionName VariableName  meta  -- f ..  = .. x ..
+  | ConflictingDefinitions FunctionName VariableName [meta] -- f x x = ...
 
-type BindingsAnalysis meta
-  = Analysis InternalError CurrentBindings [BindingsViolation meta] [(Name, meta)]
+data CurrentBindings meta =
+  CurrentBindings
+  { bound :: [(Name, meta)]
+  , used  :: [(Name, meta)]
+  }
 
-data CurrentBindings =
-  CurrentBindings { currentFunctionName    :: FName
-                  , currentlyUsedVariables :: VName
-                  }
+currentBindings :: BindingsAnalysis meta [(Name, meta)]
+currentBindings = bound <$> get
+
+bind :: (Name, meta) -> BindingsAnalysis meta ()
+bind (x, m) =
+  do environment <- get
+     put $ environment { bound = (x, m) : bound environment}
+
+unbind1 :: Name -> BindingsAnalysis meta ()
+unbind1 x =
+  do environment <- get
+     put $ environment { bound = remove1 x $ bound environment }
+  where
+     remove1 x [              ] = [ ]
+     remove1 x ((x', m) : xs) = if x == x' then xs else (x', m) : remove1 x xs
+
+unbindAll :: Name -> BindingsAnalysis meta ()
+unbindAll x =
+  do xs <- currentBindings
+     forM_ xs (const $ unbind1 x)
+
+forceUniqueNames :: BindingsAnalysis meta ()
+forceUniqueNames =
+  do xs <- currentBindings
+     let xs' = choose1 xs
+     _  <- mapM_ (\(x, _) -> unbindAll x) xs'
+     mapM_ bind xs'
+  where
+     choose1 [               ] = [ ]
+     choose1 (x@(n, _) : rest) = x : filter ((/=n) . fst) (choose1 rest)
 
 bindingsInProgram :: Program meta -> BindingsAnalysis meta ()
 bindingsInProgram (Program fs) = mapM_ bindingsInDefinition fs
@@ -60,8 +95,8 @@ bindingsInProgram (Program fs) = mapM_ bindingsInDefinition fs
 bindingsInDefinition :: Definition meta -> BindingsAnalysis meta ()
 bindingsInDefinition (Function f p e _) =
   do _ <- checkBindings p
-     local (\r -> r { currentFunctionName = f}) $
-       bindingsInExpression e
+     put (CurrentBindings [] [])
+     local (const f) $ bindingsInExpression e
 
 namesInPattern :: Pattern meta -> BindingsAnalysis meta [(Name, meta)]
 namesInPattern (Constructor _ ps _) = concat <$> mapM namesInPattern ps
@@ -70,9 +105,9 @@ namesInPattern (Variable    x    m) = return [(x, m)]
 
 checkBindings :: Pattern meta -> BindingsAnalysis meta ()
 checkBindings p =
-  do f  <- currentFunctionName <$> ask
+  do f  <- ask
      ns <- namesInPattern p
-     ms <- get
+     ms <- currentBindings
      -- Check that new bindings don't shadow old ones.
      forM_ ms $
        \(x, m) ->
@@ -86,10 +121,7 @@ checkBindings p =
            [ ] -> throwError "Bottom!"
            [_] -> return ()
            ns' -> tell [ ConflictingDefinitions f x $ map snd ns']
-     put $ choose1 $ ns ++ ms
-  where
-    choose1 [      ] = [ ]
-    choose1 (x : xs) = x : filter ((/=(fst x)) . fst) (choose1 xs)
+     forceUniqueNames
 
 bindingsInExpression :: Expression meta -> BindingsAnalysis meta ()
 bindingsInExpression (Pattern p)               = bindingsInPattern p
@@ -102,10 +134,10 @@ bindingsInExpression (RLet input f output e _) =
      _ <- checkBindings     input
      bindingsInExpression e
 bindingsInExpression (Case p cases          _) =
-  do ms <- get
+  do environment <- get
      forM_ cases $
        \(p, e) ->
-         do put ms
+         do put environment
             _ <- checkBindings p
             bindingsInExpression e
 
@@ -113,13 +145,16 @@ bindingsInPattern :: Pattern meta -> BindingsAnalysis meta ()
 bindingsInPattern (Constructor _ _ _) = undefined
 bindingsInPattern (Duplicate   _ _  ) = undefined
 bindingsInPattern (Variable x m)      =
-  do f  <- currentFunctionName <$> ask
-     ms <- get
+  do f  <- ask
+     -- Check that x is bound.
+     ms <- currentBindings
      case filter ((==x) . fst) ms of
        [ ] -> tell [ UsedButNotDefined f x m ]
        [_] -> return ()
        ms' -> tell [ ConflictingDefinitions f x $ map snd ms' ]
-     put $ removeFirst x ms
-  where
-    removeFirst x [              ] = [ ]
-    removeFirst x ((x', m) : rest) = if x == x' then rest else (x', m) : removeFirst x rest
+     -- Check that x is not already used.
+     xs <- currentBindings
+     case filter ((==x) . fst) xs of
+       [ ] -> return ()
+       xs' -> tell [ LinearityViolation f x $ m : map snd xs' ]
+     unbind1 x

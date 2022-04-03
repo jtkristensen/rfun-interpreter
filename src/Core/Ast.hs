@@ -25,6 +25,8 @@ module Core.Ast where
 type Name            = String
 type FName           = Name
 type VName           = Name
+type FunctionName    = Name
+type VariableName    = Name
 type Body       meta = Expression meta
 type InPattern  meta = Pattern    meta
 type OutPattern meta = Pattern    meta
