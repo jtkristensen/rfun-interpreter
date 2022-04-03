@@ -23,3 +23,17 @@ ideas for them might pop up during development of the main features.
 - [ ] A typeconstuctor per Recive statement?
 - [ ] Two different semantics for unrecieve/unsend.
 - [ ] What will the first paper be about?
+
+# Backlog.
+
+It makes sense to see what kinds of analysis can be made from the Core
+`RFun` language, before trying to do something more complicated. However, as
+most analysis are most naturally expressed as type-and-effect systems, the
+first thing todo, is to expand with algebraic datatypes.
+
+The next thing we need is to expand with lambda, and introduce reversible
+lambda (which is not the ansilla curry). We can then express the ansilla as
+an extra program transformation.
+
+Near summer, the sessiontype project should then have moved towards
+something implementable, and then we need to introduce spawn.
