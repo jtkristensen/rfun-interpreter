@@ -30,26 +30,43 @@ import Core.Ast
 import Text.Parsec
 import Control.Monad (void)
 
--- Shorthand.
-type Parser = Parsec String ()
+-- Shorthands.
+type Source      = String
+type ParserState = ()
+type Parser      = Parsec Source ParserState
 
 -- For now, the meta data is the cursor start and end position from where
 -- the entity was parsed (used for error messages).
-type Info = (SourcePos, SourcePos)
+type    Info                = (SourcePos, SourcePos)
+newtype SourceFileReference = SourceFileReference Info
+  deriving Eq
+
+class SourceFileReferenceable pos where
+  inSource :: [pos] -> String
+
+-- TODO: improve this {^_^}.
+instance SourceFileReferenceable SourceFileReference where
+  inSource [                   ] = "\n"
+  inSource (SourceFileReference (start, _) : more) =
+    "starting near " ++ show start ++  " ..\n" ++ inSource more
+
+-- TODO: improve this {^o^}!
+instance Show SourceFileReference where
+  show (SourceFileReference (start, _)) = show start
 
 -- * Implementation
 
-parseFromFile :: FilePath -> IO (Either ParseError (Program Info))
+parseFromFile :: FilePath -> IO (Either ParseError (Program SourceFileReference))
 parseFromFile fileName =
   do input <- readFile fileName
      return $ runParser program () fileName input
 
-program :: Parser (Program Info)
+program :: Parser (Program SourceFileReference)
 program =
   do lexeme $ return ()
      ds <- many definition
      eof
-     return $ Program ds
+     return $ SourceFileReference <$> Program ds
 
 definition :: Parser (Definition Info)
 definition =

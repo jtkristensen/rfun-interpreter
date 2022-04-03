@@ -41,7 +41,7 @@ _case :: Pattern () -> [(Pattern (), Body ())] -> Expression ()
 _case p ps = Case p ps ()
 
 -- Utility functions.
-run :: Parser a -> String -> Either ParseError a
+run :: Parser a -> Source -> Either ParseError a
 run p = runParser p () "stdin"
 
 strip :: Functor f => f a -> f ()
