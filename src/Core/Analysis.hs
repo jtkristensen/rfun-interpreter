@@ -106,9 +106,9 @@ bindingsOfExpression (Case _ cases          _) =
 
 -- Performs bindings analysis on a pattern.
 bindingsOfPattern :: Pattern meta -> BindingsAnalysis meta ()
-bindingsOfPattern (Constructor _ _ _) = undefined
-bindingsOfPattern (Duplicate   _ _  ) = undefined
-bindingsOfPattern (Variable x m)      =
+bindingsOfPattern (Constructor _ ps _) = mapM_ bindingsInPattern ps
+bindingsOfPattern (Duplicate   p _   ) = bindingsInPattern p
+bindingsOfPattern (Variable x m)       =
   do f  <- ask
      -- Check that x is bound.
      ms <- bound <$> get
