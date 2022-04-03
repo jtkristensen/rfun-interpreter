@@ -3,10 +3,8 @@
 
 Module      : Core.Ast
 Description : The abstract syntax for RCPL goes here.
-Copyright   : Joachim Tilsted Kristensen
-              Michael Kirkedal
-              Eric Jul
-Licence     : TBA
+Author      : Joachim Tilsted Kristensen
+Licence     : GNU GENERAL PUBLIC LICENSE
 Maintainer  : tilsted@di.ku.dk
 Stability   : experimental
 Portability : POSIX

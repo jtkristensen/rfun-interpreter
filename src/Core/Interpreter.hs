@@ -2,10 +2,8 @@
 
 Module      : Core.Interpreter
 Description : An interpreter for RFun Core.
-Copyright   : Joachim Tilsted Kristensen
-              Michael Kirkedal
-              Eric Jul
-Licence     : TBA
+Author      : Joachim Tilsted Kristensen
+Licence     : GNU GENERAL PUBLIC LICENSE
 Maintainer  : tilsted@di.ku.dk
 Stability   : experimental
 Portability : POSIX
