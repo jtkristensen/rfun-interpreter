@@ -49,8 +49,7 @@ data Definition                               meta
 
 data Pattern                         meta
   = Variable    VName                meta
-  | Constructor Name [Pattern meta]  meta
-  | Duplicate   (Pattern meta)       meta
+  | Constructor Name  [Pattern meta] meta
   deriving (Show, Eq, Functor)
 
 data Expression                                                meta
@@ -71,7 +70,6 @@ instance Meta Definition where
 instance Meta Pattern where
   meta (Variable      _ a) = a
   meta (Constructor _ _ a) = a
-  meta (Duplicate     _ a) = a
 
 instance Meta Expression where
   meta (Pattern      p) = meta p

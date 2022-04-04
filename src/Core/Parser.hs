@@ -10,7 +10,7 @@ Portability : POSIX
 
 program    ::= definition*
 definiiton ::= `fun` fname pattern `=` expression
-pattern    ::= name | cname pattern* | `dup` pattern | `(` pattern `)`
+pattern    ::= name | cname pattern* | `(` pattern `)`
 expression ::= pattern
              | `let`  pattern `=` fname pattern `in` expression
              | `rlet` pattern `=` fname pattern `in` expression
@@ -92,8 +92,7 @@ pattern_ :: Parser (Pattern Info)
 pattern_ =
   lexeme $
     choice
-      [ info $ keyword "dup" >> Duplicate <$> pattern_
-      , info $ Variable <$> fname
+      [ info $ Variable <$> fname
       , info   builtInTuple
       , info $ constructor <*>
           chainl (fmap return pattern_) (return mappend) []
@@ -116,9 +115,9 @@ lexeme p =
 
 reserved :: [ Name ]
 reserved =
-  [ "fun" , "let"
-  , "in"  , "rlet"
-  , "dup" , "case"
+  [ "fun" , "case"
+  , "let" , "rlet"
+  , "in"
   ]
 
 isReserved :: Name -> Bool

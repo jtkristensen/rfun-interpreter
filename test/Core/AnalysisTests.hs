@@ -54,14 +54,14 @@ passesBindings :: Source -> TestTree
 passesBindings src =
   testCase (titleOf src) $
     expectProgram
-      runBindingsAnalysis id src (return ())
+      bindingsAnalysis id src (return ())
 
 -- Expect a program to fail the bindings analysis.
 failsBindings :: Source -> TestTree
 failsBindings src =
     testCase (titleOf src) $
       expectProgram
-        runBindingsAnalysis norm src (Left (return []))
+        bindingsAnalysis norm src (Left (return []))
   where
     -- We don't expect a specific error, but it should not be a ParserError.
     norm (Left (Right _)) = Left $ return []
