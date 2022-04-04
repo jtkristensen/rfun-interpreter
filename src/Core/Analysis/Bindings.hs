@@ -16,24 +16,18 @@ import Core.Ast
 import Control.Monad.RWS
 import Control.Monad.Except
 
--- All analysis are just stateful computations, that either `write`
--- constraints or `raise` errors. Some analysis need `read` or `state`
--- data. So, I just (conviniently) use RWS for everything.
-type Analysis error read write state
-  = (RWST read write state) (Except error)
+type InternalError
+  = String
 
 -- The bindings analysis checks that patterns are regular, makes sure that
 -- variables are only used once, and that no definitions are conflicting or
 -- ambiguous.
 type BindingsAnalysis meta
-  = Analysis
-      InternalError            -- Something impossible happened.
+  = RWST
       FunctionName             -- We are currently analysing this function.
       [BindingsViolation meta] -- These violations were found thus far.
       (CurrentBindings meta)   -- The environment looks like this.
-
-type InternalError
-  = String
+      (Except InternalError)   -- Something impossible happened.
 
 data BindingsViolation meta
   = IrregularPattern       FunctionName VariableName [meta] -- f x .. x = ?
@@ -45,9 +39,9 @@ data BindingsViolation meta
 
 data CurrentBindings meta
   = CurrentBindings
-    { bound :: [(Name, meta)]
-    , used  :: [(Name, meta)]
-    }
+      { bound :: [(Name, meta)]
+      , used  :: [(Name, meta)]
+      }
 
 -- Does Bindings analysis.
 bindingsAnalysis ::

@@ -1,11 +1,11 @@
 
-module Core.AnalysisTests where
+module Core.BindingsAnalysisTests where
 
 import Test.Tasty
 import Test.Tasty.HUnit
 
 import Core.Ast
-import Core.Analysis
+import Core.Analysis.Bindings
 import Core.Parser       ( Source, SourceFileReference, program )
 import Text.Parsec       ( runParser                            )
 import Text.Parsec.Error ( ParseError                           )
@@ -14,7 +14,7 @@ import Control.Monad
 import Control.Monad.Except
 
 -- Exports.
-coreAnalysisTests =
+coreBindingsAnalysisTests =
   testGroup "Unit tests about analyzing the core language."
     [ positiveBindingsAnalysisTests
     , negativeBindingsAnalysisTests

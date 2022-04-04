@@ -29,6 +29,7 @@ library
       Analysis
       Core.Analysis
       Core.Analysis.Bindings
+      Core.Analysis.Unification
       Core.Ast
       Core.Interpreter
       Core.Parser
@@ -68,7 +69,7 @@ test-suite rcpl-test
   type: exitcode-stdio-1.0
   main-is: Driver.hs
   other-modules:
-      Core.AnalysisTests
+      Core.BindingsAnalysisTests
       Core.ParserTests
       Paths_rcpl
   hs-source-dirs:

@@ -225,8 +225,7 @@ case_ =
            return (l, e)
 
 -- Todo:
--- [ ] Write tests.
--- [ ] Syntactic abbreviations for lists and pairs?
+-- [x] Write tests.
+-- [x] Syntactic abbreviations for lists and pairs?
+-- [x] Indentation sensitive syntax? -> No, the core language should be as simple as possible.
 -- [ ] Documentation, once the syntax is locked.
--- [ ] Indentation sensitive syntax?
-
