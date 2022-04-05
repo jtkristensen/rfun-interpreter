@@ -15,7 +15,7 @@ import Control.Monad.Except
 
 -- Exports.
 coreBindingsAnalysisTests =
-  testGroup "Unit tests about analyzing the core language."
+  testGroup "Tests for bindings analysis."
     [ positiveBindingsAnalysisTests
     , negativeBindingsAnalysisTests
     ]
@@ -69,7 +69,7 @@ failsBindings src =
 
 -- A unit test harness of programs that should pass the bindings analysis.
 positiveBindingsAnalysisTests =
-  testGroup "Unit tests for programs that should pass bindings analysis" $
+  testGroup "Unit tests for programs that should pass bindings analysis." $
     map passesBindings
       [ "fun id  x = x"
       , "fun inc n = S n"
@@ -87,7 +87,7 @@ positiveBindingsAnalysisTests =
 
 -- A unit test harness of programs that should fail the bindings analysis.
 negativeBindingsAnalysisTests =
-  testGroup "Unit tests for programs that should fail bindings analysis" $
+  testGroup "Unit tests for programs that should fail bindings analysis." $
     map failsBindings
       [ "fun inc n = LinearityViolation n n"
       , "fun f (G x y) = let y = f x in ConflictingDefinitionsOf y"

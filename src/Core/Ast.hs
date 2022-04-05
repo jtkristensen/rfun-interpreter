@@ -83,6 +83,9 @@ data Value
   = Value Name [Value]
   deriving (Show, Eq)
 
+fromValue :: meta -> Value -> Pattern meta
+fromValue m (Value c vs) = Constructor c (fromValue m <$> vs) m
+
 -- Todo:
 -- [x] Collect meta data, such as source position and type.
 -- [x] What instances (Meta, Functor, ..)

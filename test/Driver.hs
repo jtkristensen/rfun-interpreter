@@ -8,14 +8,16 @@ import Data.Ord
 
 import Core.ParserTests
 import Core.BindingsAnalysisTests
+import Core.UnificationTests
 
 main = defaultMain tests
 
 tests :: TestTree
 tests =
-  testGroup "Tests"
+  testGroup "Tests for RFun Core"
     [ coreParserTests
     , coreBindingsAnalysisTests
+    , coreUnificationTests
     -- , properties
     ]
 

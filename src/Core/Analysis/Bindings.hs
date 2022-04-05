@@ -106,34 +106,38 @@ bindingsOfPattern (Variable x m)       =
        xs' -> tell [ LinearityViolation f x $ m : map snd xs' ]
      unbind1 x
 
--- Returns the names that occur in a pattern.
-namesInPattern :: Pattern meta -> BindingsAnalysis meta [(Name, meta)]
-namesInPattern (Constructor _ ps _) = concat <$> mapM namesInPattern ps
-namesInPattern (Variable    x    m) = return [(x, m)]
+-- Computes the variables (and meta data) that occur in a pattern.
+variablesInPattern :: Pattern meta -> [(Name, meta)]
+variablesInPattern (Constructor _ ps _) = concatMap variablesInPattern ps
+variablesInPattern (Variable    x    m) = [(x, m)]
+
+-- Computes the names that occur in a pattern.
+namesInPattern :: Pattern meta -> [Name]
+namesInPattern = fmap fst . variablesInPattern
 
 -- Checks the bindings of a pattern to be bound, and performs the bindings.
 bindPattern :: Pattern meta -> BindingsAnalysis meta ()
 bindPattern p =
   do f  <- ask
-     ns <- namesInPattern p
+     let vs = variablesInPattern p
      -- Check that the pattern itself is regular.
-     forM_ ns $
+     forM_ vs $
        \(x, _) ->
-         case filter ((==x) . fst) ns of
+         case filter ((==x) . fst) vs of
            [ ] -> throwError "Argh, we have quantum variables!"
            [_] -> return ()
-           ns' -> tell [ IrregularPattern f x $ map snd ns']
+           vs' -> tell [ IrregularPattern f x $ map snd vs']
      ms <- bound <$> get
      -- Check that out-bound variables don't redefine unused ones.
      forM_ ms $
        \(x, m) ->
-         tell $ map (\(_, m') -> ConflictingDefinitions f x [m, m']) $ filter ((==x) . fst) ns
+         tell $ map (\(_, m') -> ConflictingDefinitions f x [m, m']) $ filter ((==x) . fst) vs
      us <- used <$> get
      -- Reset `used` on variable rebindings.
      forM_ us $
        \(x, _) ->
-         mapM (const $ unuse1 x) $ filter ((==x) . fst) ns
-     forM_ ns bind
+         mapM (const $ unuse1 x) $ filter ((==x) . fst) vs
+     forM_ vs bind
 
 -- When a variable is bound in a pattern, we put it into the environment
 -- using this function.
@@ -157,7 +161,6 @@ unbindAll :: Name -> BindingsAnalysis meta ()
 unbindAll x =
   do xs <- bound <$> get
      forM_ xs (const $ unbind1 x)
-
 
 -- Forgets that we used a variable.
 unuse1 :: Name -> BindingsAnalysis meta ()
