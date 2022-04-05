@@ -15,16 +15,17 @@ module Core.Analysis.Unification where
 import Core.Ast
 import Control.Monad.Except
 
+-- Exports.
+data PatternMatch meta
+  = NoMatch
+  | Match (Pattern meta -> Pattern meta)
 
+
+-- Utililty for computing the most general unifier (mgu).
 type    DoesNotUnify   = ()
 type    Unification  a = Except DoesNotUnify a
 newtype Substitution a = Substitution { unify :: Unification (Pattern a -> Pattern a) }
 
--- Exports
-mostGeneralUnifier :: Pattern meta -> Pattern meta -> Substitution meta
-mostGeneralUnifier = mgu
-
--- Utililty for computing the most general unifier.
 subst :: VName -> Pattern meta -> Substitution meta
 subst x p = Substitution $
   do f <- unify $ subst x p
@@ -50,7 +51,8 @@ mgu (Variable x _)       p                    | not (p `contains` x) = subst x p
 mgu  p                   (Variable x _)       | not (p `contains` x) = subst x p
 mgu (Constructor c ps _) (Constructor t qs _) | c == t && length ps == length qs
   = foldl (<>) mempty $ zipWith mgu ps qs
-mgu _ _             = doesNotUnify
+mgu _ _
+  = doesNotUnify
 
 contains :: Pattern meta -> VName -> Bool
 contains (Variable       y _) x = x == y
