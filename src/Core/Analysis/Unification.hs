@@ -97,7 +97,7 @@ patternToExpression f e =
   where
     shadows p
       = patternToExpression (foldl captureFree f $ namesInPattern p)
-    captureFree t x v@(Variable y _) | x == y
+    captureFree _ x v@(Variable y _) | x == y
       = v
     captureFree t x (Constructor c ps m)
       = Constructor c (t `captureFree` x <$> ps) m
