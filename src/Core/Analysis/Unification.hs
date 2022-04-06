@@ -22,7 +22,7 @@ type Transformation f a = (f a -> f a)
 -- (make equal) expressions that consists of those patterns.
 data PatternMatch meta
   = NoMatch
-  | Match (Transformation Expression meta)
+  | MatchBy (Transformation Expression meta)
 
 -- Decides if two patterns match, and provides the above mentioned
 -- transformation as evidence.
@@ -30,7 +30,7 @@ patternMatch :: Pattern meta -> Pattern meta -> PatternMatch meta
 patternMatch p q =
   case runExcept $ unifier $ modify patternToExpression $ mgu p q of
     (Left ()) -> NoMatch
-    (Right f) -> Match f
+    (Right f) -> MatchBy f
 
 -- A unifier is a computation that either fails, or provides the
 -- transformation.
