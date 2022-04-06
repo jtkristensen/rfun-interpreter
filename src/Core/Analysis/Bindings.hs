@@ -29,6 +29,8 @@ type BindingsAnalysis meta
       (CurrentBindings meta)   -- The environment looks like this.
       (Except InternalError)   -- Something impossible happened.
 
+-- The meta data should at least contain the source code locations that the
+-- error message refers to.
 data BindingsViolation meta
   = IrregularPattern       FunctionName VariableName [meta] -- f x .. x = ?
   | DefinedButNotUsed      FunctionName VariableName  meta  -- f x      = ..
@@ -37,6 +39,7 @@ data BindingsViolation meta
   | ConflictingDefinitions FunctionName VariableName [meta] -- f x      = .. let x = ..
   deriving (Eq, Show)
 
+-- To make sure, that variables are bound exactly once, we keep two lists:
 data CurrentBindings meta
   = CurrentBindings
       { bound :: [(Name, meta)]
@@ -73,11 +76,11 @@ bindingsOfExpression :: Expression meta -> BindingsAnalysis meta ()
 bindingsOfExpression (Pattern p)               = bindingsOfPattern p
 bindingsOfExpression (Let output _ input  e _) =
   do _ <- bindingsOfPattern  input
-     _ <- bindPattern     output
+     _ <- bindPattern        output
      bindingsOfExpression e
 bindingsOfExpression (RLet input _ output e _) =
   do _ <- bindingsOfPattern output
-     _ <- bindPattern      input
+     _ <- bindPattern       input
      bindingsOfExpression e
 bindingsOfExpression (Case p0 cases          _) =
   do _           <- bindingsOfPattern p0
@@ -169,7 +172,9 @@ unuse1 x =
      let (used', _) = remove1 x $ used environment
      put $ environment { used = used' }
 
--- remove1 x [(y, my), (x, m0), (x, m1), (x, m2)] = ([(y, my), (x, m1), (x, m2)], [(x, m0)])
+-- If possible, extracts 1 varible to a seperate list, example:
+-- remove1 x [(y, my), (x, m0), (x, m1), (x, m2)]
+--    =     ([(y, my),          (x, m1), (x, m2)], [(x, m0)])
 remove1 :: Name -> [(Name, meta)] -> ([(Name, meta)], [(Name, meta)])
 remove1 _ [       ] = ([], [])
 remove1 x (x' : xs) =
