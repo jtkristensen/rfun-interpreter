@@ -53,8 +53,8 @@ instance Monoid (Substitution f a) where
 -- Computes the most general unifier (mgu) for patterns.
 mgu :: Pattern meta -> Pattern meta -> Substitution Pattern meta
 mgu (Variable x _)       (Variable y _) | x == y               = mempty
-mgu (Variable x _)       p              | not (p `contains` x) = substPattern x p
-mgu  p                   (Variable x _) | not (p `contains` x) = substPattern x p
+mgu (Variable x _)       p              | not (p `contains` x) = p `substitutesFor` x
+mgu  p                   (Variable x _) | not (p `contains` x) = p `substitutesFor` x
 mgu (Constructor c ps _) (Constructor t qs _)
   | c == t && length ps == length qs = foldl (<>) mempty $ zipWith mgu ps qs
 mgu _ _
@@ -64,11 +64,11 @@ mgu _ _
 contains :: Pattern meta -> VName -> Bool
 contains p x = x `elem` namesInPattern p
 
--- Returns the substitution that substitutes `x` with `q`.
-substPattern :: VName -> Pattern meta -> Substitution Pattern meta
-substPattern x q =
+-- Returns the substitution that substitutesFor `x` with `q`.
+substitutesFor :: Pattern meta -> VName -> Substitution Pattern meta
+substitutesFor q x =
   Substitution $
-    do f <- unifier $ substPattern x q
+    do f <- unifier $ q `substitutesFor` x
        return $ \p ->
          case p of
            (Variable y _) | x == y -> q
