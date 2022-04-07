@@ -32,6 +32,37 @@ patternMatch p q =
     (Left ()) -> NoMatch
     (Right f) -> MatchBy f
 
+term =
+  let p0 = Constructor "P\195036"
+             [ Constructor "\DLE\""
+                [ Variable "\EM" ()] ()
+             , Constructor "\f"
+                [ Constructor "" [] ()
+                , Constructor ""
+                   [Variable "" ()] ()] ()
+             ] ()
+      p1 = Constructor "P\195036"
+             [ Variable "" ()
+             , Constructor "\f"
+                 [ Constructor "" [] ()
+                 , Constructor ""
+                     [Variable "i" ()] ()
+                 ] ()
+             ] ()
+  in do print ""
+        print p0
+        print ""
+        print p1
+        print ""
+        case patternMatch p0 p1 of
+          NoMatch -> print "fuck!!!"
+          (MatchBy f) ->
+            do print $ show (f $ Pattern p0)
+               print ""
+               print $ show (f $ Pattern p1)
+               print ""
+
+
 -- A unifier is a computation that either fails, or provides the
 -- transformation.
 type Unifier a = Except () (a -> a)
@@ -46,9 +77,10 @@ newtype Substitution f a
 instance Semigroup (Substitution f a) where
   s1 <> s2 =
     Substitution $
-    -- Reapplying the inner substitution ensures idempotens.
-    -- (check this).
-    (.) <$> unifier s2 <*> ((.) <$> unifier s1 <*> unifier s2)
+      -- Forces by rearranging the order of substitution.
+      (.) <$>
+        ((.) <$> unifier s1 <*> unifier s2) <*>
+        ((.) <$> unifier s2 <*> unifier s1)
 
 instance Monoid (Substitution f a) where
   mempty  = Substitution $ return id

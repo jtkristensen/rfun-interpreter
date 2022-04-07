@@ -18,10 +18,9 @@ import Control.Monad.Except
 
 newtype AnyPattern
   = AP { unAP :: Pattern () }
-  deriving (Show)
 
 instance Arbitrary AnyPattern where
-  arbitrary = resize sizeOfGeneratedPatterns $ AP <$> sized linearPattern
+  arbitrary = resize sizeOfGeneratedPatterns $ AP . forceRegular <$> sized linearPattern
     where
       linearPattern = fPattern (\n -> n - 1)
       fPattern f 0 =
@@ -35,32 +34,13 @@ instance Arbitrary AnyPattern where
                ps    <- resize n $ listOf (fPattern f (f n))
                return (Constructor cname ps ())
           ]
-  shrink ap =
-    case unAP ap of
-      (Variable    x    _) ->
-        AP <$> (map (flip Variable ()) $ shrink x)
-      (Constructor c ps _) ->
-        AP <$>
-        map (\c' -> Constructor c' ps ()) (shrink c) ++
-        map (\ps' -> Constructor c ps' ()) (iter ps)
-     where
-       iter [ ] = []
-       iter [p] = map (return . unAP) $ shrink (AP p)
-       iter (p : s) =
-         do p' <- shrink (AP p)
-            s' <- iter s
-            return $ (unAP p') : s'
 
 newtype AnyPairOfPatterns
   = APOP { unAPOP :: (Pattern (), Pattern ()) }
   deriving (Show)
 
 instance Arbitrary AnyPairOfPatterns where
-  arbitrary   = curry APOP <$> (unAP <$> arbitrary) <*> (unAP <$> arbitrary)
-  shrink (APOP (p, q)) =
-    do p' <- shrink (AP p)
-       q' <- shrink (AP q)
-       return $ APOP (unAP p', unAP q')
+  arbitrary = curry APOP <$> (unAP <$> arbitrary) <*> (unAP <$> arbitrary)
 
 newtype APairOfStructurallyEquvialentPatterns
   = APOSEP { unAPOSEP :: (Pattern (), Pattern ()) }
@@ -68,10 +48,9 @@ newtype APairOfStructurallyEquvialentPatterns
 
 instance Arbitrary APairOfStructurallyEquvialentPatterns where
   arbitrary = APOSEP . forceEquivalent . unAPOP <$> arbitrary
-  shrink (APOSEP (p, q)) = map (APOSEP . unAPOP) $ shrink (APOP (p, q))
 
 newtype APairOfStructurallyDifferentPatterns
-  = APOSDP { unAPSDP :: (Pattern (), Pattern ()) }
+  = APOSDP { unAPOSDP :: (Pattern (), Pattern ()) }
   deriving (Show)
 
 instance Arbitrary APairOfStructurallyDifferentPatterns where
@@ -134,7 +113,25 @@ coreUnificationTests =
 
 -- *| Nasty details:
 
--- Produces a pair of unifiable patterns from a pair of (possibly)--
+-- TODO : (could this function become handy for a test?)
+-- Produces a regular pattern from a (possibly) irregular one.
+forceRegular :: Pattern a -> Pattern a
+forceRegular = fst . regularify []
+  where
+    regularify xs (Variable    x    a) = fresh xs x a
+    regularify xs (Constructor c ps a) =
+        (Constructor c ps' a, xs')
+      where
+        (ps', xs') = regularify' xs ps
+    regularify' xs [     ] = ([], xs)
+    regularify' xs (p : s) = (p' : s', xs')
+      where
+        (p', xs'') = regularify  xs   p
+        (s', xs' ) = regularify' xs'' s
+    fresh xs x a | x `elem` xs = fresh xs (x ++ "'") a
+    fresh xs x a               = (Variable x a, x : xs)
+
+-- Produces a pair of unifiable patterns from a pair of (possibly)
 -- ununifiable ones.
 forceEquivalent :: (Pattern (), Pattern()) -> (Pattern (), Pattern ())
 forceEquivalent p@(Variable _ _, Variable _ _          ) = p
