@@ -71,6 +71,7 @@ test-suite rcpl-test
   other-modules:
       Core.BindingsAnalysisTests
       Core.ParserTests
+      Core.TestConfig
       Core.UnificationTests
       Paths_rcpl
   hs-source-dirs:

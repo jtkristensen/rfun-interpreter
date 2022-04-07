@@ -32,6 +32,28 @@ patternMatch p q =
     (Left ()) -> NoMatch
     (Right f) -> MatchBy f
 
+
+t =
+  let p1 =
+        (Constructor "C" [Variable "y" (),Constructor "C" [Variable "z" (),Variable "k" ()] ()] ())
+      p0 =
+        (Constructor "C" [Constructor "C" [Variable "x" (),Constructor "C" [] ()] (),Variable "x" ()] ())
+  in case patternMatch p0 p1 of
+       NoMatch     -> print "failed"
+       (MatchBy f) ->
+         do print "p:"
+            print $ show p0
+            print "q:"
+            print $ show p1
+            print "1:"
+            putStrLn (show $ f (Pattern p0))
+            print "2:"
+            putStrLn (show $ f (f (Pattern p0)))
+            print "3:"
+            putStrLn (show $ f (Pattern p1))
+            print "4:"
+            putStrLn (show $ f (f (Pattern p1)))
+
 -- A unifier is a computation that either fails, or provides the
 -- transformation.
 type Unifier a = Except () (a -> a)
@@ -66,14 +88,11 @@ contains p x = x `elem` namesInPattern p
 
 -- The substitution where `x` is replaced by `q`.
 substitutes :: Pattern meta -> VName -> Substitution Pattern meta
-substitutes q x =
-  Substitution $
-    do f <- unifier $ q `substitutes` x
-       return $ \p ->
-         case p of
-           (Variable y _) | x == y -> q
-           (Constructor c ps m)    -> Constructor c (f <$> ps) m
-           _                       -> p
+substitutes p x = Substitution $ return $ bind x p
+  where
+    bind x p (Variable y _) | x == y = p
+    bind x p (Constructor c ps m)    = Constructor c (bind x p <$> ps) m
+    bind _ _ q                       = q
 
 -- Modifies the transformation resulting from substitution.
 modify
