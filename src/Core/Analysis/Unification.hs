@@ -32,28 +32,6 @@ patternMatch p q =
     (Left ()) -> NoMatch
     (Right f) -> MatchBy f
 
-
-t =
-  let p1 =
-        (Constructor "C" [Variable "y" (),Constructor "C" [Variable "z" (),Variable "k" ()] ()] ())
-      p0 =
-        (Constructor "C" [Constructor "C" [Variable "x" (),Constructor "C" [] ()] (),Variable "x" ()] ())
-  in case patternMatch p0 p1 of
-       NoMatch     -> print "failed"
-       (MatchBy f) ->
-         do print "p:"
-            print $ show p0
-            print "q:"
-            print $ show p1
-            print "1:"
-            putStrLn (show $ f (Pattern p0))
-            print "2:"
-            putStrLn (show $ f (f (Pattern p0)))
-            print "3:"
-            putStrLn (show $ f (Pattern p1))
-            print "4:"
-            putStrLn (show $ f (f (Pattern p1)))
-
 -- A unifier is a computation that either fails, or provides the
 -- transformation.
 type Unifier a = Except () (a -> a)
