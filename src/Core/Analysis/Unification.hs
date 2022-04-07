@@ -69,11 +69,11 @@ contains p x = x `elem` namesInPattern p
 
 -- The substitution where `x` is replaced by `q`.
 substitutes :: Pattern meta -> VName -> Substitution Pattern meta
-substitutes p x = Substitution $ return $ bind x p
+substitutes p x = Substitution $ return subst
   where
-    bind x p (Variable y _) | x == y = p
-    bind x p (Constructor c ps m)    = Constructor c (bind x p <$> ps) m
-    bind _ _ q                       = q
+    subst (Variable y _) | x == y = p
+    subst (Constructor c ps m)    = Constructor c (subst <$> ps) m
+    subst q                       = q
 
 -- Modifies the transformation resulting from substitution.
 modify
