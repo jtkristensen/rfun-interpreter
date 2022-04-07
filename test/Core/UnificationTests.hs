@@ -66,20 +66,6 @@ newtype APairOfStructurallyEquvialentPatterns
 
 instance Arbitrary APairOfStructurallyEquvialentPatterns where
   arbitrary = APOSEP . forceEquivalent . unAPOP <$> arbitrary
-    where
-      -- Produces a pair of unifiable patterns from a pair of (possibly)
-      -- ununifiable ones.
-      forceEquivalent p@(Variable _ _, Variable _ _          ) = p
-      forceEquivalent (Variable x _ , Constructor c ps _     ) =
-                      (Variable x (), Constructor c (map (\y -> x =/= y) ps) ())
-      forceEquivalent (Constructor c ps _ , Variable x _     ) =
-                      (Constructor c ((x =/=) <$> ps) (), Variable x ())
-      forceEquivalent (Constructor c ps _, Constructor _ qs _) =
-          (Constructor c ps' (), Constructor c qs' ())
-        where (ps', qs') = unzip $ zipWith (curry forceEquivalent) ps qs
-      x =/= (Variable y m)       | x == y = Variable (y ++ "'") m
-      x =/= (Constructor c ps m)          = Constructor c ((x =/=) <$> ps) m
-      _ =/= p                             = p
   shrink (APOSEP (p, q)) = map (APOSEP . unAPOP) $ shrink (APOP (p, q))
 
 newtype APairOfStructurallyDifferentPatterns
@@ -88,65 +74,6 @@ newtype APairOfStructurallyDifferentPatterns
 
 instance Arbitrary APairOfStructurallyDifferentPatterns where
   arbitrary = APOSDP <$> (arbitrary >>= forceDifferent . unAPOP)
-    where
-      -- Produces a pair of ununifiable patterns from a pair of (possibly)
-      -- unifiable ones.
-      forceDifferent (Variable x _, Variable y _)       =
-        oneof $ map return $
-          [ (Constructor y [Variable x ()] (), Variable x ())
-          , (Variable x (), Constructor y [Variable x ()] ())
-          ]
-      forceDifferent (Variable x _, Constructor y ps _) =
-        do ps' <- somethingEquals x ps
-           return (Variable x (), Constructor y ps' ())
-      forceDifferent (Constructor y ps _, Variable x _) =
-        do ps' <- somethingEquals x ps
-           return (Constructor y ps' (), Variable x ())
-      forceDifferent (Constructor x ps _, Constructor y qs _) =
-        oneof
-          [ return (Constructor x ps (), Constructor (x++"'") qs ())
-          , do (ps', qs') <- makeSomethingDifferent ps qs
-               return (Constructor x ps' (), Constructor y qs' ())
-          ]
-      -- Makes sure that the variable "x" occurs at least once.
-      somethingEquals x []
-        = return [ Variable x () ]
-      somethingEquals x ((Variable y _) : rest)
-        = oneof
-            [ return (Variable x () : rest)
-            , do rest' <- somethingEquals x rest
-                 return (Variable y () : rest')
-            ]
-      somethingEquals x (Constructor c ps _ : rest)
-        = oneof
-            [ do ps' <- somethingEquals x ps
-                 return (Constructor c ps' () : rest)
-            , do rest' <- somethingEquals x rest
-                 return (Constructor c ps () : rest')
-            ]
-      -- Generates pairs of lists of patterns where at least one pair
-      -- is different.
-      makeSomethingDifferent [] [] =
-        do ps <- listOf1 (unAP <$> arbitrary)
-           return (ps, [])
-      makeSomethingDifferent (p:s) [] =
-        return (p:s, [])
-      makeSomethingDifferent [] (q:s) =
-        return ([], q:s)
-      makeSomethingDifferent (p:s) (q:t) =
-        oneof
-          [ do (p', q') <- makeSomethingDifferent [p] [q]
-               return (p' ++ s, q' ++ t)
-          , do (s', t') <- makeSomethingDifferent s t
-               return (p : s', q : t')
-          ]
-
--- Exports.
-coreUnificationTests =
-  testGroup "Tests about unification."
-    [ qcProperties
-    ]
-
 
 type Unifies      = APairOfStructurallyEquvialentPatterns -> Bool
 type DoesNotUnify = APairOfStructurallyDifferentPatterns  -> Bool
@@ -164,6 +91,12 @@ substitutionIsIdempotent (APOSEP (p, q)) =
     (MatchBy f) -> f (Pattern p) == f (f (Pattern p))
                 && f (Pattern q) == f (f (Pattern q))
 
+substitutionUnifies :: Unifies
+substitutionUnifies (APOSEP (p, q)) =
+  case patternMatch p q of
+    (NoMatch  ) -> False
+    (MatchBy f) -> f (Pattern p) == f (Pattern q)
+
 differentPatternsDontUnify :: DoesNotUnify
 differentPatternsDontUnify (APOSDP (p, q)) =
   case patternMatch p q of
@@ -174,6 +107,7 @@ testsOnAPOSEP :: [(String, Unifies)]
 testsOnAPOSEP =
   [ ("Equivalent patterns always unify", equivalentPatternsUnify)
   , ("Substitution is idempotent", substitutionIsIdempotent)
+  , ("The pattern matchin substitution is a unifier", substitutionUnifies)
   ]
 
 testsOnAPOSDP :: [(String, DoesNotUnify)]
@@ -181,9 +115,85 @@ testsOnAPOSDP =
   [ ("Structurally different patterns never unify", differentPatternsDontUnify)
   ]
 
-
 qcProperties :: TestTree
 qcProperties =
   testGroup "Tested by Quick Check" $
     map (uncurry QC.testProperty) testsOnAPOSEP ++
     map (uncurry QC.testProperty) testsOnAPOSDP
+
+-- Exports.
+coreUnificationTests =
+  testGroup "Tests about unification."
+    [ qcProperties
+    ]
+
+
+-- Produces a pair of unifiable patterns from a pair of (possibly)--
+-- ununifiable ones.
+forceEquivalent p@(Variable _ _, Variable _ _          ) = p
+forceEquivalent (Variable x _ , Constructor c ps _     ) =
+  (Variable x (), Constructor c ((x `isNotANameIn`) <$> ps) ())
+forceEquivalent (Constructor c ps _ , Variable x _     ) =
+  (Constructor c ((x `isNotANameIn`) <$> ps) (), Variable x ())
+forceEquivalent (Constructor c ps _, Constructor _ qs _) =
+    (Constructor c ps' (), Constructor c qs' ())
+  where (ps', qs') = unzip $ zipWith (curry forceEquivalent) ps qs
+
+
+isNotANameIn x (Variable y m)       | x == y = Variable (y ++ "'") m
+isNotANameIn x (Constructor c ps m)          =
+  Constructor c ((x `isNotANameIn`) <$> ps) m
+isNotANameIn x p                             = p
+
+
+-- Produces a pair of ununifiable patterns from a pair of (possibly)
+-- unifiable ones.
+forceDifferent (Variable x _, Variable y _)       =
+  oneof $ map return $
+    [ (Constructor y [Variable x ()] (), Variable x ())
+    , (Variable x (), Constructor y [Variable x ()] ())
+    ]
+forceDifferent (Variable x _, Constructor y ps _) =
+  do ps' <- somethingEquals x ps
+     return (Variable x (), Constructor y ps' ())
+forceDifferent (Constructor y ps _, Variable x _) =
+  do ps' <- somethingEquals x ps
+     return (Constructor y ps' (), Variable x ())
+forceDifferent (Constructor x ps _, Constructor y qs _) =
+  oneof
+    [ return (Constructor x ps (), Constructor (x++"'") qs ())
+    , do (ps', qs') <- makeSomethingDifferent ps qs
+         return (Constructor x ps' (), Constructor y qs' ())
+    ]
+-- Makes sure that the variable "x" occurs at least once.
+somethingEquals x []
+  = return [ Variable x () ]
+somethingEquals x ((Variable y _) : rest)
+  = oneof
+      [ return (Variable x () : rest)
+      , do rest' <- somethingEquals x rest
+           return (Variable y () : rest')
+      ]
+somethingEquals x (Constructor c ps _ : rest)
+  = oneof
+      [ do ps' <- somethingEquals x ps
+           return (Constructor c ps' () : rest)
+      , do rest' <- somethingEquals x rest
+           return (Constructor c ps () : rest')
+      ]
+-- Generates pairs of lists of patterns where at least one pair
+-- is different.
+makeSomethingDifferent [] [] =
+  do ps <- listOf1 (unAP <$> arbitrary)
+     return (ps, [])
+makeSomethingDifferent (p:s) [] =
+  return (p:s, [])
+makeSomethingDifferent [] (q:s) =
+  return ([], q:s)
+makeSomethingDifferent (p:s) (q:t) =
+  oneof
+    [ do (p', q') <- makeSomethingDifferent [p] [q]
+         return (p' ++ s, q' ++ t)
+    , do (s', t') <- makeSomethingDifferent s t
+         return (p : s', q : t')
+    ]

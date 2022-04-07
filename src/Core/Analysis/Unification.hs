@@ -47,6 +47,7 @@ instance Semigroup (Substitution f a) where
   s1 <> s2 =
     Substitution $
     -- Reapplying the inner substitution ensures idempotens.
+    -- (check this).
     (.) <$> unifier s2 <*> ((.) <$> unifier s1 <*> unifier s2)
 
 instance Monoid (Substitution f a) where

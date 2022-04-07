@@ -59,7 +59,6 @@ data Expression                                                meta
   | Case (Pattern meta) [(Pattern meta, Body meta)]            meta
   deriving (Show, Eq, Functor)
 
--- Instances for Show
 instance Show (Pattern meta) where
   show = ("pattern : "++) . show'
     where
