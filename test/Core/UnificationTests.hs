@@ -7,8 +7,8 @@ import Test.Tasty.HUnit
 
 import Core.Ast
 import Core.Analysis.Unification
-import Core.TestConfig
 
+import Core.TestConfig     ( sizeOfGeneratedPatterns )
 import Control.Monad.State ( State    , runState , get, put )
 import Data.Bifunctor      ( Bifunctor, bimap               )
 
