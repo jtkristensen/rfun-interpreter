@@ -13,7 +13,8 @@ import Core.TestConfig
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.State
-import Control.Arrow
+
+import Data.Bifunctor ( bimap )
 
 -- *| Generators:
 
@@ -53,8 +54,7 @@ instance Arbitrary APairOfStructurallyEquvialentPatterns where
     fst .
     flip runState [] .
     forceEquivalent .
-    (first forceRegular) .
-    (second forceRegular) .
+    bimap forceRegular forceRegular .
     unAPOP <$> arbitrary
 
 newtype APairOfStructurallyDifferentPatterns

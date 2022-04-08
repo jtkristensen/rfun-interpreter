@@ -45,7 +45,7 @@ newtype Substitution f a
   = Substitution { unifier :: Unifier (f a) }
 
 instance Semigroup (Substitution f a) where
-  s1 <> s2 = Substitution $ ((.) <$> unifier s1 <*> unifier s2)
+  s1 <> s2 = Substitution $ (.) <$> unifier s1 <*> unifier s2
 
 instance Monoid (Substitution f a) where
   mempty  = Substitution $ return id
