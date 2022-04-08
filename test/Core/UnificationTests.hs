@@ -22,18 +22,18 @@ newtype AnyPattern
   = AP { unAP :: Pattern () }
 
 instance Arbitrary AnyPattern where
-  arbitrary = resize sizeOfGeneratedPatterns $ AP <$> sized linearPattern
+  arbitrary = resize sizeOfGeneratedPatterns $ AP <$> sized linearlySized
     where
-      linearPattern = fPattern (\n -> n - 1)
-      fPattern f 0 =
+      linearlySized = sizedPattern (\n -> n - 1)
+      sizedPattern f 0 =
         do vname <- arbitrary
            return (Variable vname ())
-      fPattern f n =
+      sizedPattern f n =
         oneof
           [ do vname <- arbitrary
                return (Variable vname ())
           , do cname <- arbitrary
-               ps    <- resize n $ listOf (fPattern f (f n))
+               ps    <- resize n $ listOf (sizedPattern f (f n))
                return (Constructor cname ps ())
           ]
 
@@ -96,14 +96,14 @@ differentPatternsDontUnify (APOSDP (p, q)) =
 
 testsOnAPOSEP :: [(String, Unifies)]
 testsOnAPOSEP =
-  [ ("Equivalent patterns always unify", equivalentPatternsUnify)
-  , ("Substitution is idempotent", substitutionIsIdempotent)
+  [ ("Equivalent patterns always unify"             , equivalentPatternsUnify)
+  , ("Substitution is idempotent"                   , substitutionIsIdempotent)
   , ("The pattern matchin substitution is a unifier", substitutionUnifies)
   ]
 
 testsOnAPOSDP :: [(String, DoesNotUnify)]
 testsOnAPOSDP =
-  [ ("Structurally different patterns never unify", differentPatternsDontUnify)
+  [ ("Structurally different patterns never unify"  , differentPatternsDontUnify)
   ]
 
 qcProperties :: TestTree
