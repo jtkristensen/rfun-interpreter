@@ -6,15 +6,11 @@ import Test.Tasty.QuickCheck as QC
 import Test.Tasty.HUnit
 
 import Core.Ast
-import Core.Analysis.Bindings
 import Core.Analysis.Unification
 import Core.TestConfig
 
-import Control.Monad
-import Control.Monad.Except
-import Control.Monad.State
-
-import Data.Bifunctor ( bimap )
+import Control.Monad.State ( State    , runState , get, put )
+import Data.Bifunctor      ( Bifunctor, bimap               )
 
 -- *| Generators:
 
@@ -50,11 +46,9 @@ newtype APairOfStructurallyEquvialentPatterns
 
 instance Arbitrary APairOfStructurallyEquvialentPatterns where
   arbitrary =
-    APOSEP .
-    fst .
-    flip runState [] .
-    forceEquivalent .
-    bimap forceRegular forceRegular .
+    APOSEP . fst .
+    flip runState [] . forceEquivalent .
+    (forceRegular `both`) .
     unAPOP <$> arbitrary
 
 newtype APairOfStructurallyDifferentPatterns
@@ -137,6 +131,10 @@ forceRegular = fst . regularify []
         (s', xs' ) = regularify' xs'' s
     fresh xs x a | x `elem` xs = fresh xs (x ++ "'") a
     fresh xs x a               = (Variable x a, x : xs)
+
+-- Applies the same function on both parts of a Bifunctor.
+both :: Bifunctor f => (a -> b) -> f a a -> f b b
+both f = bimap f f
 
 -- Produces a pair of unifiable patterns from a pair of (possibly)
 -- ununifiable ones.
