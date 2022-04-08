@@ -2,7 +2,6 @@
 module Core.UnificationTests where
 
 import Test.Tasty
--- import Test.Tasty.SmallCheck as SC -- TODO.
 import Test.Tasty.QuickCheck as QC
 import Test.Tasty.HUnit
 
@@ -13,6 +12,8 @@ import Core.TestConfig
 
 import Control.Monad
 import Control.Monad.Except
+import Control.Monad.State
+import Control.Arrow
 
 -- *| Generators:
 
@@ -20,7 +21,7 @@ newtype AnyPattern
   = AP { unAP :: Pattern () }
 
 instance Arbitrary AnyPattern where
-  arbitrary = resize sizeOfGeneratedPatterns $ AP . forceRegular <$> sized linearPattern
+  arbitrary = resize sizeOfGeneratedPatterns $ AP <$> sized linearPattern
     where
       linearPattern = fPattern (\n -> n - 1)
       fPattern f 0 =
@@ -47,7 +48,14 @@ newtype APairOfStructurallyEquvialentPatterns
   deriving (Show)
 
 instance Arbitrary APairOfStructurallyEquvialentPatterns where
-  arbitrary = APOSEP . forceEquivalent . unAPOP <$> arbitrary
+  arbitrary =
+    APOSEP .
+    fst .
+    flip runState [] .
+    forceEquivalent .
+    (first forceRegular) .
+    (second forceRegular) .
+    unAPOP <$> arbitrary
 
 newtype APairOfStructurallyDifferentPatterns
   = APOSDP { unAPOSDP :: (Pattern (), Pattern ()) }
@@ -113,7 +121,6 @@ coreUnificationTests =
 
 -- *| Nasty details:
 
--- TODO : (could this function become handy for a test?)
 -- Produces a regular pattern from a (possibly) irregular one.
 forceRegular :: Pattern a -> Pattern a
 forceRegular = fst . regularify []
@@ -133,22 +140,38 @@ forceRegular = fst . regularify []
 
 -- Produces a pair of unifiable patterns from a pair of (possibly)
 -- ununifiable ones.
-forceEquivalent :: (Pattern (), Pattern()) -> (Pattern (), Pattern ())
-forceEquivalent p@(Variable _ _, Variable _ _          ) = p
-forceEquivalent (Variable x _ , Constructor c ps _     ) =
-  (Variable x (), Constructor c ((x `isNotANameIn`) <$> ps) ())
-forceEquivalent (Constructor c ps _ , Variable x _     ) =
-  (Constructor c ((x `isNotANameIn`) <$> ps) (), Variable x ())
-forceEquivalent (Constructor c ps _, Constructor _ qs _) =
-    (Constructor c ps' (), Constructor c qs' ())
-  where (ps', qs') = unzip $ zipWith (curry forceEquivalent) ps qs
+forceEquivalent
+  :: (Pattern (), Pattern ())
+  -> State [(Name, Pattern ())] (Pattern (), Pattern ())
+forceEquivalent (p, q) =
+  case (p, q) of
+    (Variable x _, _) ->
+       do xqs <- get
+          q'  <- case filter ((==x) . fst) xqs of
+                    ((_, q'') : _) -> return q''
+                    [            ] ->
+                      do let q'' = x `isFreeIn` q
+                         put $ (x, q'') : xqs
+                         return q''
+          return (p, q')
+    (Constructor c ps a, Constructor _ qs _) ->
+      do (ps', qs') <- iter ps qs
+         return (Constructor c ps' a, Constructor c qs' a)
+      where
+        iter (p:s) (q:t) =
+          do (p',  q' ) <- forceEquivalent (p, q)
+             (ps', qs') <- iter s t
+             return (p' : ps', q' : qs')
+        iter _     _     = return ([], [])
+    _ ->
+      do (q', p') <- forceEquivalent (q, p)
+         return (p', q')
 
 -- Adds "plings" to make names differ from `x`.
-isNotANameIn :: Name -> Pattern a -> Pattern a
-isNotANameIn x (Variable y m)       | x == y = Variable (y ++ "'") m
-isNotANameIn x (Constructor c ps m)          =
-  Constructor c ((x `isNotANameIn`) <$> ps) m
-isNotANameIn x p                             = p
+isFreeIn :: Name -> Pattern a -> Pattern a
+isFreeIn x (Variable y m)       | x == y = Variable (y ++ "'") m
+isFreeIn x (Constructor c ps m)          = Constructor c ((x`isFreeIn`) <$> ps) m
+isFreeIn x p                             = p
 
 -- Produces a pair of ununifiable patterns from a pair of (possibly)
 -- unifiable ones.

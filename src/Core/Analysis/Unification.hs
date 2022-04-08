@@ -15,6 +15,7 @@ module Core.Analysis.Unification where
 import Core.Ast
 import Core.Analysis.Bindings ( namesInPattern )
 import Control.Monad.Except
+import Control.Arrow ( first , second )
 
 type Transformation f a = (f a -> f a)
 
@@ -32,22 +33,35 @@ patternMatch p q =
     (Left ()) -> NoMatch
     (Right f) -> MatchBy f
 
+  -- let p0 = Constructor "P"
+  --            [ Constructor "A"
+  --               [ Variable "x" ()] ()
+  --            , Constructor "F"
+  --               [ Constructor "C" [] ()
+  --               , Constructor "C"
+  --                  [Variable "y" ()] ()] ()
+  --            ] ()
+  --     p1 = Constructor "P"
+  --            [ Variable "y" ()
+  --            , Constructor "F"
+  --                [ Constructor "C" [] ()
+  --                , Constructor "C"
+  --                    [Variable "i" ()] ()
+  --                ] ()
+  --            ] ()
+
 term =
-  let p0 = Constructor "P\195036"
-             [ Constructor "\DLE\""
-                [ Variable "\EM" ()] ()
-             , Constructor "\f"
-                [ Constructor "" [] ()
-                , Constructor ""
-                   [Variable "" ()] ()] ()
-             ] ()
-      p1 = Constructor "P\195036"
-             [ Variable "" ()
-             , Constructor "\f"
-                 [ Constructor "" [] ()
-                 , Constructor ""
-                     [Variable "i" ()] ()
+  let p0 = Constructor "C"
+             [ Constructor "D"
+                 [ Constructor "D"
+                     [ Variable "y" ()] ()
                  ] ()
+             , Variable "x" ()
+             ] ()
+      p1 = Constructor "C"
+             [ Constructor "D"
+                 [ Variable "x" ()] ()
+             , Constructor "D" [] ()
              ] ()
   in do print ""
         print p0
@@ -61,7 +75,6 @@ term =
                print ""
                print $ show (f $ Pattern p1)
                print ""
-
 
 -- A unifier is a computation that either fails, or provides the
 -- transformation.
@@ -77,10 +90,8 @@ newtype Substitution f a
 instance Semigroup (Substitution f a) where
   s1 <> s2 =
     Substitution $
-      -- Forces by rearranging the order of substitution.
-      (.) <$>
-        ((.) <$> unifier s1 <*> unifier s2) <*>
-        ((.) <$> unifier s2 <*> unifier s1)
+      (.)  <$> unifier s2 <*>
+      ((.) <$> unifier s1 <*> unifier s2)
 
 instance Monoid (Substitution f a) where
   mempty  = Substitution $ return id
@@ -92,7 +103,17 @@ mgu (Variable x _)       (Variable y _) | x == y               = mempty
 mgu (Variable x _)       p              | not (p `contains` x) = p `substitutes` x
 mgu  p                   (Variable x _) | not (p `contains` x) = p `substitutes` x
 mgu (Constructor c ps _) (Constructor t qs _)
-  | c == t && length ps == length qs = foldl (<>) mempty $ zipWith mgu ps qs
+  | c == t && length ps == length qs =
+      -- foldl (<>) mempty $ zipWith mgu ps qs
+      iter (zip ps qs)
+    where
+      iter :: [(Pattern meta, Pattern meta)] -> Substitution Pattern meta
+      iter [            ] = mempty
+      iter ((p, q) : pqs) =
+        Substitution $
+          do s <- unifier $ mgu p q
+             t <- unifier $ iter ((first s . second s) <$> pqs)
+             return (s . t . s)
 mgu _ _
   = Substitution doesNotUnify
 
