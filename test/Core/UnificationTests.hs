@@ -35,7 +35,6 @@ instance Arbitrary AnyPattern where
 
 newtype AnyPairOfPatterns
   = APOP { unAPOP :: (Pattern (), Pattern ()) }
-  deriving (Show)
 
 instance Arbitrary AnyPairOfPatterns where
   arbitrary = curry APOP <$> (unAP <$> arbitrary) <*> (unAP <$> arbitrary)
@@ -90,9 +89,9 @@ differentPatternsDontUnify (APOSDP (p, q)) =
 
 testsOnAPOSEP :: [(String, Unifies)]
 testsOnAPOSEP =
-  [ ("Equivalent patterns always unify"             , equivalentPatternsUnify)
-  , ("Substitution is idempotent"                   , substitutionIsIdempotent)
-  , ("The pattern matchin substitution is a unifier", substitutionUnifies)
+  [ ("Equivalent patterns always unify"              , equivalentPatternsUnify)
+  , ("Substitution is idempotent"                    , substitutionIsIdempotent)
+  , ("The pattern matching substitution is a unifier", substitutionUnifies)
   ]
 
 testsOnAPOSDP :: [(String, DoesNotUnify)]
