@@ -15,7 +15,7 @@ module Core.Analysis.Unification where
 import Core.Ast
 import Core.Analysis.Bindings ( namesInPattern )
 import Control.Monad.Except
-import Control.Arrow ( first , second )
+import Data.Bifunctor ( bimap )
 
 type Transformation f a = (f a -> f a)
 
@@ -33,49 +33,6 @@ patternMatch p q =
     (Left ()) -> NoMatch
     (Right f) -> MatchBy f
 
-  -- let p0 = Constructor "P"
-  --            [ Constructor "A"
-  --               [ Variable "x" ()] ()
-  --            , Constructor "F"
-  --               [ Constructor "C" [] ()
-  --               , Constructor "C"
-  --                  [Variable "y" ()] ()] ()
-  --            ] ()
-  --     p1 = Constructor "P"
-  --            [ Variable "y" ()
-  --            , Constructor "F"
-  --                [ Constructor "C" [] ()
-  --                , Constructor "C"
-  --                    [Variable "i" ()] ()
-  --                ] ()
-  --            ] ()
-
-term =
-  let p0 = Constructor "C"
-             [ Constructor "D"
-                 [ Constructor "D"
-                     [ Variable "y" ()] ()
-                 ] ()
-             , Variable "x" ()
-             ] ()
-      p1 = Constructor "C"
-             [ Constructor "D"
-                 [ Variable "x" ()] ()
-             , Constructor "D" [] ()
-             ] ()
-  in do print ""
-        print p0
-        print ""
-        print p1
-        print ""
-        case patternMatch p0 p1 of
-          NoMatch -> print "fuck!!!"
-          (MatchBy f) ->
-            do print $ show (f $ Pattern p0)
-               print ""
-               print $ show (f $ Pattern p1)
-               print ""
-
 -- A unifier is a computation that either fails, or provides the
 -- transformation.
 type Unifier a = Except () (a -> a)
@@ -88,10 +45,7 @@ newtype Substitution f a
   = Substitution { unifier :: Unifier (f a) }
 
 instance Semigroup (Substitution f a) where
-  s1 <> s2 =
-    Substitution $
-      (.)  <$> unifier s2 <*>
-      ((.) <$> unifier s1 <*> unifier s2)
+  s1 <> s2 = Substitution $ ((.) <$> unifier s1 <*> unifier s2)
 
 instance Monoid (Substitution f a) where
   mempty  = Substitution $ return id
@@ -111,9 +65,9 @@ mgu (Constructor c ps _) (Constructor t qs _)
       iter [            ] = mempty
       iter ((p, q) : pqs) =
         Substitution $
-          do s <- unifier $ mgu p q
-             t <- unifier $ iter ((first s . second s) <$> pqs)
-             return (s . t . s)
+          do s0 <- unifier $ mgu p q
+             s1 <- unifier $ iter (bimap s0 s0 <$> pqs)
+             return (s1 . s0)
 mgu _ _
   = Substitution doesNotUnify
 
