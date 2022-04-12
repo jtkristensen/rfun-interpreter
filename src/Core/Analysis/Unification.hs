@@ -57,16 +57,14 @@ mgu (Variable x _)       (Variable y _) | x == y               = mempty
 mgu (Variable x _)       p              | not (p `contains` x) = p `substitutes` x
 mgu  p                   (Variable x _) | not (p `contains` x) = p `substitutes` x
 mgu (Constructor c ps _) (Constructor t qs _)
-  | c == t && length ps == length qs =
-      -- foldl (<>) mempty $ zipWith mgu ps qs
-      iter (zip ps qs)
+  | c == t && length ps == length qs = mgus (zip ps qs)
     where
-      iter :: [(Pattern meta, Pattern meta)] -> Substitution Pattern meta
-      iter [            ] = mempty
-      iter ((p, q) : pqs) =
+      mgus :: [(Pattern meta, Pattern meta)] -> Substitution Pattern meta
+      mgus [            ] = mempty
+      mgus ((p, q) : pqs) =
         Substitution $
           do s0 <- unifier $ mgu p q
-             s1 <- unifier $ iter (bimap s0 s0 <$> pqs)
+             s1 <- unifier $ mgus (bimap s0 s0 <$> pqs)
              return (s1 . s0)
 mgu _ _
   = Substitution doesNotUnify
