@@ -10,7 +10,7 @@ import Core.Analysis.Unification
 
 import Core.TestConfig     ( sizeOfGeneratedPatterns )
 import Control.Monad.State ( State    , runState , get, put )
-import Data.Bifunctor      ( Bifunctor, bimap               )
+import Data.Bifunctor      ( Bifunctor, bimap )
 
 -- *| Generators:
 
@@ -22,33 +22,45 @@ instance Arbitrary AnyPattern where
     where
       linearlySized = sizedPattern (\n -> n - 1)
       sizedPattern f 0 =
-        do vname <- arbitrary
+        do vname <- variableName
            return (Variable vname ())
       sizedPattern f n =
         oneof
-          [ do vname <- arbitrary
+          [ do vname <- variableName
                return (Variable vname ())
-          , do cname <- arbitrary
+          , do cname <- constructorName
                ps    <- resize n $ listOf (sizedPattern f (f n))
                return (Constructor cname ps ())
           ]
+      constructorName = oneof $ return . return <$> ['A'..'Z']
+      variableName    = oneof $ return . return <$> ['a'..'z']
+  shrink v@(AP (Variable  _    _)) = mempty
+  shrink (AP (Constructor c ps _)) =
+    do ps' <- shrink (AP <$> ps)
+       return $ AP $ Constructor c (unAP <$> ps') ()
 
 newtype AnyPairOfPatterns
   = APOP { unAPOP :: (Pattern (), Pattern ()) }
 
 instance Arbitrary AnyPairOfPatterns where
   arbitrary = curry APOP <$> (unAP <$> arbitrary) <*> (unAP <$> arbitrary)
+  shrink  p =
+    do p' <- shrink $ AP $ fst $ unAPOP p
+       q' <- shrink $ AP $ snd $ unAPOP p
+       return $ APOP (unAP p', unAP q')
 
 newtype APairOfStructurallyEquvialentPatterns
   = APOSEP { unAPOSEP :: (Pattern (), Pattern ()) }
   deriving (Show)
 
+equivalentify :: AnyPairOfPatterns -> (Pattern (), Pattern ())
+equivalentify =
+  fst . flip runState [] . forceEquivalent .
+  (forceRegular `both`) . unAPOP
+
 instance Arbitrary APairOfStructurallyEquvialentPatterns where
-  arbitrary =
-    APOSEP . fst .
-    flip runState [] . forceEquivalent .
-    (forceRegular `both`) .
-    unAPOP <$> arbitrary
+  arbitrary = APOSEP . equivalentify <$> arbitrary
+  shrink p  = APOSEP . equivalentify <$> shrink (APOP $ unAPOSEP p)
 
 newtype APairOfStructurallyDifferentPatterns
   = APOSDP { unAPOSDP :: (Pattern (), Pattern ()) }
@@ -56,6 +68,8 @@ newtype APairOfStructurallyDifferentPatterns
 
 instance Arbitrary APairOfStructurallyDifferentPatterns where
   arbitrary = APOSDP <$> (arbitrary >>= forceDifferent . unAPOP)
+  shrink p  = APOSDP . unAPOP <$> shrink (APOP $ unAPOSDP p)
+
 
 -- *| Properties:
 
@@ -163,6 +177,10 @@ forceEquivalent (p, q) =
     _ ->
       do (q', p') <- forceEquivalent (q, p)
          return (p', q')
+
+-- pattern : (X (J (R  a)                        (G b)))
+-- pattern : (X (J (R (E (P t b) (J (S i (D))))) (G a)))
+
 
 -- Adds "plings" to make names differ from `x`.
 isFreeIn :: Name -> Pattern a -> Pattern a
