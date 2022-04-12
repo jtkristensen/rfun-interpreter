@@ -7,6 +7,7 @@ import Test.Tasty.HUnit
 
 import Core.Ast
 import Core.Analysis.Unification
+import Core.Analysis.Bindings    ( namesInPattern )
 
 import Core.TestConfig     ( sizeOfGeneratedPatterns )
 import Control.Monad.State ( State    , runState , get, put )
@@ -32,9 +33,14 @@ instance Arbitrary AnyPattern where
                ps    <- resize n $ listOf (sizedPattern f (f n))
                return (Constructor cname ps ())
           ]
-      constructorName = oneof $ return . return <$> ['A'..'Z']
-      variableName    = oneof $ return . return <$> ['a'..'z']
-  shrink v@(AP (Variable  _    _)) = mempty
+      -- TODO: (find the subtle bug)
+      -- constructorName = oneof $ return . return <$> ['A'..'Z']
+      -- variableName    = oneof $ return . return <$> ['a'..'z']
+      constructorName = arbitrary
+      variableName    = arbitrary
+  shrink (AP (Variable  _    _)) =
+    do x <- return <$> ['a'..'z']
+       return $ AP $ Variable x ()
   shrink (AP (Constructor c ps _)) =
     do ps' <- shrink (AP <$> ps)
        return $ AP $ Constructor c (unAP <$> ps') ()
@@ -177,10 +183,6 @@ forceEquivalent (p, q) =
     _ ->
       do (q', p') <- forceEquivalent (q, p)
          return (p', q')
-
--- pattern : (X (J (R  a)                        (G b)))
--- pattern : (X (J (R (E (P t b) (J (S i (D))))) (G a)))
-
 
 -- Adds "plings" to make names differ from `x`.
 isFreeIn :: Name -> Pattern a -> Pattern a
