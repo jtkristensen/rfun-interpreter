@@ -84,8 +84,7 @@ substitutes p x = Substitution $ return subst
 -- Modifies the transformation resulting from substitution.
 modify
   :: (Transformation f a -> Transformation g b)
-  -> Substitution f a
-  -> Substitution g b
+  -> (Substitution   f a -> Substitution   g b)
 modify t s =
   Substitution $ t <$> unifier s
 

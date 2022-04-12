@@ -22,7 +22,10 @@ Portability : POSIX
 -- [ ] CFA1 (defunctionalization for lambda).
 
 module Core.Analysis
-  ( bindingsAnalysis )
+  ( bindingsAnalysis
+  , PatternMatch , patternMatch
+  )
 where
 
-import Core.Analysis.Bindings ( bindingsAnalysis )
+import Core.Analysis.Bindings    ( bindingsAnalysis )
+import Core.Analysis.Unification ( PatternMatch , patternMatch )
