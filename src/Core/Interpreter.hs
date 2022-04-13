@@ -34,11 +34,10 @@ type Error   meta = (String, meta)
 type Runtime meta = RWST (Environment meta) () () (Except (Error meta))
 
 -- Looks up the definition of a function in the program.
-def :: Program meta -> (Name, meta) -> Runtime meta (Definition meta)
-def (Program (f@(Function n _ _ _) : _)) m | n == fst m = return f
-def (Program (_                   : fs)) m              = def (Program fs) m
-def (Program [                        ]) m              =
-  throwError ("unableto lookup funtion " ++ fst m, snd m)
+definition :: Program meta -> (Name, meta) -> Runtime meta (Definition meta)
+definition (Program (f@(Function n _ _ _) : _)) m | n == fst m = return f
+definition (Program (_ : fs)) m = definition (Program fs) m
+definition (Program [ ]) m = throwError ("Missing definition of " ++ fst m, snd m)
 
 runProgram :: Show meta => Program meta -> Runtime meta Value
 runProgram p =

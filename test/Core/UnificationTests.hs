@@ -10,7 +10,7 @@ import Core.Analysis.Unification
 import Core.Analysis.Bindings    ( namesInPattern )
 
 import Core.TestConfig     ( sizeOfGeneratedPatterns )
-import Control.Monad.State ( State    , runState , get, put )
+import Control.Monad.State ( State , runState , get, put )
 
 -- *| Generators:
 
@@ -125,33 +125,13 @@ coreUnificationTests =
 
 -- *| Nasty details:
 
--- Produces a regular pattern from a (possibly) irregular one.
-forceRegular :: Pattern a -> Pattern a
-forceRegular = fst . regularify []
-  where
-    regularify xs (Variable    x    a) = fresh xs x a
-    regularify xs (Constructor c ps a) =
-        (Constructor c ps' a, xs')
-      where
-        (ps', xs') = regularify' xs ps
-    regularify' xs [     ] = ([], xs)
-    regularify' xs (p : s) = (p' : s', xs')
-      where
-        (p', xs'') = regularify  xs   p
-        (s', xs' ) = regularify' xs'' s
-    fresh xs x a | x `elem` xs = fresh xs (x ++ "'") a
-    fresh xs x a               = (Variable x a, x : xs)
 
 -- Produces a pair of unifiable patterns from a pair of (possibly)
 -- ununifiable ones.
--- TODO: find a weaker way than making forcing regularity ?
 equivalentify :: AnyPairOfPatterns -> (Pattern (), Pattern ())
 equivalentify =
     regularify . fst . flip runState [] . forceEquivalent . unAPOP
   where
-    regularify (p, q) =
-      let (Constructor _ [p', q'] _) = forceRegular (Constructor "pair" [p, q] ())
-      in  (p', q')
     forceEquivalent
       :: (Pattern (), Pattern ())
       -> State [(Name, Pattern ())] (Pattern (), Pattern ())
@@ -178,6 +158,26 @@ equivalentify =
         _ ->
           do (q', p') <- forceEquivalent (q, p)
              return (p', q')
+    -- TODO: find a weaker way than forcing regularity ?
+    regularify (p, q) =
+      let (Constructor _ [p', q'] _) =
+            forceRegular (Constructor "Pair" [p, q] ())
+      in  (p', q')
+    -- Produces a regular pattern from a (possibly) irregular one.
+    forceRegular = fst . regular []
+      where
+        regular xs (Variable    x    a) = fresh xs x a
+        regular xs (Constructor c ps a) =
+            (Constructor c ps' a, xs')
+          where
+            (ps', xs') = regular' xs ps
+        regular' xs [     ] = ([], xs)
+        regular' xs (p : s) = (p' : s', xs')
+          where
+            (p', xs'') = regular  xs   p
+            (s', xs' ) = regular' xs'' s
+        fresh xs x a | x `elem` xs = fresh xs (x ++ "'") a
+        fresh xs x a               = (Variable x a, x : xs)
 
 -- Adds "plings" to make names differ from `x`.
 isFreeIn :: Name -> Pattern a -> Pattern a
