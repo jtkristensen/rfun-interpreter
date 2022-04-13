@@ -11,7 +11,6 @@ import Core.Analysis.Bindings    ( namesInPattern )
 
 import Core.TestConfig     ( sizeOfGeneratedPatterns )
 import Control.Monad.State ( State    , runState , get, put )
-import Data.Bifunctor      ( Bifunctor, bimap )
 
 -- *| Generators:
 
@@ -33,11 +32,8 @@ instance Arbitrary AnyPattern where
                ps    <- resize n $ listOf (sizedPattern f (f n))
                return (Constructor cname ps ())
           ]
-      -- TODO: (find the subtle bug)
-      -- constructorName = oneof $ return . return <$> ['A'..'Z']
-      -- variableName    = oneof $ return . return <$> ['a'..'z']
-      constructorName = arbitrary
-      variableName    = arbitrary
+      constructorName = oneof $ return . return <$> ['A'..'Z']
+      variableName    = oneof $ return . return <$> ['a'..'z']
   shrink (AP (Variable  _    _)) =
     do x <- return <$> ['a'..'z']
        return $ AP $ Variable x ()
@@ -58,11 +54,6 @@ instance Arbitrary AnyPairOfPatterns where
 newtype APairOfStructurallyEquvialentPatterns
   = APOSEP { unAPOSEP :: (Pattern (), Pattern ()) }
   deriving (Show)
-
-equivalentify :: AnyPairOfPatterns -> (Pattern (), Pattern ())
-equivalentify =
-  fst . flip runState [] . forceEquivalent .
-  (forceRegular `both`) . unAPOP
 
 instance Arbitrary APairOfStructurallyEquvialentPatterns where
   arbitrary = APOSEP . equivalentify <$> arbitrary
@@ -151,38 +142,42 @@ forceRegular = fst . regularify []
     fresh xs x a | x `elem` xs = fresh xs (x ++ "'") a
     fresh xs x a               = (Variable x a, x : xs)
 
--- Applies the same function on both parts of a Bifunctor.
-both :: Bifunctor f => (a -> b) -> f a a -> f b b
-both f = bimap f f
-
 -- Produces a pair of unifiable patterns from a pair of (possibly)
 -- ununifiable ones.
-forceEquivalent
-  :: (Pattern (), Pattern ())
-  -> State [(Name, Pattern ())] (Pattern (), Pattern ())
-forceEquivalent (p, q) =
-  case (p, q) of
-    (Variable x _, _) ->
-       do xqs <- get
-          q'  <- case filter ((==x) . fst) xqs of
-                    ((_, q'') : _) -> return q''
-                    [            ] ->
-                      do let q'' = x `isFreeIn` q
-                         put $ (x, q'') : xqs
-                         return q''
-          return (p, q')
-    (Constructor c ps a, Constructor _ qs _) ->
-      do (ps', qs') <- iter ps qs
-         return (Constructor c ps' a, Constructor c qs' a)
-      where
-        iter (p:s) (q:t) =
-          do (p',  q' ) <- forceEquivalent (p, q)
-             (ps', qs') <- iter s t
-             return (p' : ps', q' : qs')
-        iter _     _     = return ([], [])
-    _ ->
-      do (q', p') <- forceEquivalent (q, p)
-         return (p', q')
+-- TODO: find a weaker way than making forcing regularity ?
+equivalentify :: AnyPairOfPatterns -> (Pattern (), Pattern ())
+equivalentify =
+    regularify . fst . flip runState [] . forceEquivalent . unAPOP
+  where
+    regularify (p, q) =
+      let (Constructor _ [p', q'] _) = forceRegular (Constructor "pair" [p, q] ())
+      in  (p', q')
+    forceEquivalent
+      :: (Pattern (), Pattern ())
+      -> State [(Name, Pattern ())] (Pattern (), Pattern ())
+    forceEquivalent (p, q) =
+      case (p, q) of
+        (Variable x _, _) ->
+           do xqs <- get
+              q'  <- case filter ((==x) . fst) xqs of
+                        ((_, q'') : _) -> return q''
+                        [            ] ->
+                          do let q'' = x `isFreeIn` q
+                             put $ (x, q'') : xqs
+                             return q''
+              return (p, q')
+        (Constructor c ps a, Constructor _ qs _) ->
+          do (ps', qs') <- iter ps qs
+             return (Constructor c ps' a, Constructor c qs' a)
+          where
+            iter (p:s) (q:t) =
+              do (p',  q' ) <- forceEquivalent (p, q)
+                 (ps', qs') <- iter s t
+                 return (p' : ps', q' : qs')
+            iter _     _     = return ([], [])
+        _ ->
+          do (q', p') <- forceEquivalent (q, p)
+             return (p', q')
 
 -- Adds "plings" to make names differ from `x`.
 isFreeIn :: Name -> Pattern a -> Pattern a

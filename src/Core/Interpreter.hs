@@ -26,8 +26,8 @@ import Control.Monad.Except
 newtype Environment meta =
   Environment
   { unEnvironment ::
-      ( Name -> Result meta Value
-      , Name -> Result meta (Definition meta))
+      ( Name -> Runtime meta Value
+      , Name -> Runtime meta (Definition meta))
   }
 
 type Error   meta = (String, meta)
@@ -50,4 +50,4 @@ runProgram p =
     u m = Constructor "Unit" [] m
 
 interpret :: Expression meta -> Runtime meta Value
-interpret 
+interpret = undefined
