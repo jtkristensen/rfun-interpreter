@@ -15,7 +15,7 @@ functional reversible language" by Glück et al.
 
 module Core.Interpreter where
 
-import Core.Ast
+import Core.Syntax
 import Core.Analysis
 
 import Control.Monad.RWS

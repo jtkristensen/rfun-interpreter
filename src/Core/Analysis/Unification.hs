@@ -12,7 +12,7 @@ Portability : POSIX
 
 module Core.Analysis.Unification where
 
-import Core.Ast
+import Core.Syntax
 import Core.Analysis.Bindings ( namesInPattern )
 import Control.Monad.Except
 import Data.Bifunctor ( bimap )

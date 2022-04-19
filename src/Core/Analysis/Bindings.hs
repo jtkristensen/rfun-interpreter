@@ -12,7 +12,7 @@ Portability : POSIX
 
 module Core.Analysis.Bindings where
 
-import Core.Ast
+import Core.Syntax
 import Control.Monad.RWS
 import Control.Monad.Except
 

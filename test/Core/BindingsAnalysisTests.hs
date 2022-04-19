@@ -4,7 +4,7 @@ module Core.BindingsAnalysisTests where
 import Test.Tasty
 import Test.Tasty.HUnit
 
-import Core.Ast
+import Core.Syntax
 import Core.Analysis.Bindings
 import Core.Parser       ( Source, SourceFileReference, program )
 import Text.Parsec       ( runParser                            )

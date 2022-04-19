@@ -5,7 +5,7 @@ import Test.Tasty
 import Test.Tasty.QuickCheck as QC
 import Test.Tasty.HUnit
 
-import Core.Ast
+import Core.Syntax
 import Core.Analysis.Unification
 import Core.Analysis.Bindings    ( namesInPattern )
 

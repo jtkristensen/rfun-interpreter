@@ -30,9 +30,9 @@ library
       Core.Analysis
       Core.Analysis.Bindings
       Core.Analysis.Unification
-      Core.Ast
       Core.Interpreter
       Core.Parser
+      Core.Syntax
   other-modules:
       Paths_rcpl
   hs-source-dirs:

@@ -4,7 +4,7 @@ module Core.ParserTests where
 import Test.Tasty
 import Test.Tasty.HUnit
 
-import Core.Ast
+import Core.Syntax
 import Core.Parser
 import Text.Parsec
 import Text.Parsec.Pos

@@ -26,7 +26,7 @@ That are just syntactic sugar for regular ones.
 
 module Core.Parser where
 
-import Core.Ast
+import Core.Syntax
 import Text.Parsec
 import Control.Monad (void)
 
@@ -39,20 +39,7 @@ type Parser      = Parsec Source ParserState
 -- the entity was parsed (used for error messages).
 type    Info                = (SourcePos, SourcePos)
 newtype SourceFileReference = SourceFileReference Info
-  deriving Eq
-
-class SourceFileReferenceable pos where
-  inSource :: [pos] -> String
-
--- TODO: improve this {^_^}.
-instance SourceFileReferenceable SourceFileReference where
-  inSource [                   ] = "\n"
-  inSource (SourceFileReference (start, _) : more) =
-    "starting near " ++ show start ++  " ..\n" ++ inSource more
-
--- TODO: improve this {^o^}!
-instance Show SourceFileReference where
-  show (SourceFileReference (start, _)) = show start
+  deriving (Eq, Show)
 
 -- * Implementation
 
