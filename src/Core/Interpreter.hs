@@ -21,6 +21,8 @@ import Core.Analysis
 import Control.Monad.RWS
 import Control.Monad.Except
 
+import Control.Arrow
+
 -- An environment is a pair of functions, that may be used to lookup bound
 -- values `and` function definitions.
 newtype Environment meta =
@@ -37,8 +39,9 @@ type Runtime meta = RWST (Environment meta) () () (Except (Error meta))
 definition :: Program meta -> (Name, meta) -> Runtime meta (Definition meta)
 definition (Program (f@(Function n _ _ _) : _)) m | n == fst m = return f
 definition (Program (_ : fs)) m = definition (Program fs) m
-definition (Program [ ]) m = throwError ("Missing definition of " ++ fst m, snd m)
+definition (Program [ ]) m = throwError $ first ("Missing definition of " ++) m
 
+-- Calls the function main on the empty
 runProgram :: Show meta => Program meta -> Runtime meta Value
 runProgram p =
   do (_          , def) <- unEnvironment <$> ask
@@ -47,6 +50,14 @@ runProgram p =
   where
     x m = Variable    "data"    m
     u m = Constructor "Unit" [] m
+
+-- call :: (Name, meta) -> Pattern meta -> Runtime meta Value
+-- call f p =
+--   do (Function _
+
+valuate :: Pattern meta -> Runtime meta Value
+valuate (Variable    x    _) = ask >>= (\f -> f x) . fst . unEnvironment
+valuate (Constructor c ps _) = Value c <$> mapM valuate ps
 
 interpret :: Expression meta -> Runtime meta Value
 interpret = undefined
