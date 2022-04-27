@@ -48,10 +48,10 @@ strip :: Functor f => f a -> f ()
 strip = fmap $ const ()
 
 positive :: (Functor f, Eq (f ()), Show (f ())) => Parser (f a) -> String -> (f ()) -> Assertion
-positive p s a = (fmap strip) (run p s) @?= (return (strip a))
+positive p s a = (strip <$> run p s) @?= (return (strip a))
 
-negative :: Parser a -> String -> String -> Assertion
-negative p msg s = assertBool msg $ isLeft $ run p s
+negative :: Functor f => Parser (f a) -> String -> String -> Assertion
+negative p msg s = assertBool msg $ isLeft $ strip <$> run p s
 
 fileExample :: FilePath -> Program () -> TestTree
 fileExample fp p =
@@ -84,7 +84,6 @@ individualComponents =
           "S n fun"
           (con "S" [var "n"])
     ]
-
 
 exampleFiles :: TestTree
 exampleFiles =

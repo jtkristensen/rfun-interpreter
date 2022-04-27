@@ -38,7 +38,7 @@ type Parser      = Parsec Source ParserState
 -- For now, the meta data is the cursor start and end position from where
 -- the entity was parsed (used for error messages).
 type    Info                = (SourcePos, SourcePos)
-newtype SourceFileReference = SourceFileReference Info
+newtype SourceFileReference = SourceFileReference (Maybe Info)
   deriving (Eq, Show)
 
 -- * Implementation
@@ -53,7 +53,7 @@ program =
   do lexeme $ return ()
      ds <- many definition
      eof
-     return $ SourceFileReference <$> Program ds
+     return $ SourceFileReference . Just <$> Program ds
 
 definition :: Parser (Definition Info)
 definition =
