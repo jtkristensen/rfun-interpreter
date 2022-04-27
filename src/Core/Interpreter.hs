@@ -55,10 +55,9 @@ call :: (Name, meta) -> Pattern meta -> Runtime meta Value
 call f p =
   do (look, def) <- unEnvironment <$> ask
      v           <- valuate p
-     let mp = meta p
-     (Function _ q e mf) <- def f
-     case patternMatch (fromValue mp v) q of
-       NoMatch     -> throwError ("Malformed argument", mp)
+     (Function _ q e _) <- def f
+     case patternMatch (fromValue (meta p) v) q of
+       NoMatch     -> throwError ("Malformed argument", meta p)
        (MatchBy g) -> interpret (g e) -- ?
 
 valuate :: Pattern meta -> Runtime meta Value
