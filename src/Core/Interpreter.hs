@@ -48,8 +48,8 @@ runProgram p e = local (const $ Environment (f, g)) (interpret e)
     f = throwError . first ("Unknown variable " ++)
     g = definition p
 
-bind :: (Eq x, Eq a, Monad (m a)) => (x, a) -> b -> ((x, a) -> m a b) -> ((x, a) -> m a b)
-bind x v f = \y -> if x == y then return v else f y
+-- bind :: (Eq x, Eq a, Monad (m a)) => (x, a) -> b -> ((x, a) -> m a b) -> ((x, a) -> m a b)
+-- bind x v f = \y -> if x == y then return v else f y
 
 call :: (Name, meta) -> Pattern meta -> Runtime meta Value
 call f p =
