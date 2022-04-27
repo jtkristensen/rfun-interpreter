@@ -28,8 +28,8 @@ import Control.Arrow
 newtype Environment meta =
   Environment
   { unEnvironment ::
-      ( Name -> Runtime meta Value
-      , Name -> Runtime meta (Definition meta))
+      ( (Name, meta) -> Runtime meta Value
+      , (Name, meta) -> Runtime meta (Definition meta))
   }
 
 type Error   meta = (String, meta)
@@ -41,12 +41,28 @@ definition (Program (f@(Function n _ _ _) : _)) m | n == fst m = return f
 definition (Program (_ : fs)) m = definition (Program fs) m
 definition (Program [ ]) m = throwError $ first ("Missing definition of " ++) m
 
--- call :: (Name, meta) -> Pattern meta -> Runtime meta Value
--- call f p =
---   do (Function _
+-- Evaluates an expression with respect to a program.
+runProgram :: Show meta => Program meta -> Expression meta -> Runtime meta Value
+runProgram p e = local (const $ Environment (f, g)) (interpret e)
+  where
+    f = throwError . first ("Unknown variable " ++)
+    g = definition p
+
+bind :: (Eq x, Eq a, Monad (m a)) => (x, a) -> b -> ((x, a) -> m a b) -> ((x, a) -> m a b)
+bind x v f = \y -> if x == y then return v else f y
+
+call :: (Name, meta) -> Pattern meta -> Runtime meta Value
+call f p =
+  do (look, def) <- unEnvironment <$> ask
+     v           <- valuate p
+     let mp = meta p
+     (Function _ q e mf) <- def f
+     case patternMatch (fromValue mp v) q of
+       NoMatch     -> throwError ("Malformed argument", mp)
+       (MatchBy g) -> interpret (g e) -- ?
 
 valuate :: Pattern meta -> Runtime meta Value
-valuate (Variable    x    _) = ask >>= (\f -> f x) . fst . unEnvironment
+valuate (Variable    x    m) = ask >>= (\f -> f (x, m)) . fst . unEnvironment
 valuate (Constructor c ps _) = Value c <$> mapM valuate ps
 
 interpret :: Expression meta -> Runtime meta Value
