@@ -41,16 +41,6 @@ definition (Program (f@(Function n _ _ _) : _)) m | n == fst m = return f
 definition (Program (_ : fs)) m = definition (Program fs) m
 definition (Program [ ]) m = throwError $ first ("Missing definition of " ++) m
 
--- Calls the function main on the empty
-runProgram :: Show meta => Program meta -> Runtime meta Value
-runProgram p =
-  do (_          , def) <- unEnvironment <$> ask
-     (Function _ _ _ m) <- def "main"
-     interpret (Let (x m) "main" (u m) (Pattern $ x m) m)
-  where
-    x m = Variable    "data"    m
-    u m = Constructor "Unit" [] m
-
 -- call :: (Name, meta) -> Pattern meta -> Runtime meta Value
 -- call f p =
 --   do (Function _
