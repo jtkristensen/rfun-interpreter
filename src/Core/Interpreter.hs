@@ -9,7 +9,7 @@ Stability   : experimental
 Portability : POSIX
 
 The following RFun Core implementation, is based on the article "Towards a
-functional reversible language" by Glück et al.
+functional reversible language" by Yokoyama, Bock and Glück.
 
 -}
 
@@ -18,10 +18,9 @@ module Core.Interpreter where
 import Core.Syntax
 import Core.Analysis
 
+import Control.Arrow
 import Control.Monad.RWS
 import Control.Monad.Except
-
-import Control.Arrow
 
 -- An environment is a pair of functions, that may be used to lookup bound
 -- values `and` function definitions.
@@ -53,8 +52,8 @@ runProgram p e = local (const $ Environment (f, g)) (interpret e)
 
 call :: (Name, meta) -> Pattern meta -> Runtime meta Value
 call f p =
-  do (look, def) <- unEnvironment <$> ask
-     v           <- valuate p
+  do (_, def) <- unEnvironment <$> ask
+     v        <- valuate p
      (Function _ q e _) <- def f
      case patternMatch (fromValue (meta p) v) q of
        NoMatch     -> throwError ("Malformed argument", meta p)
@@ -65,4 +64,7 @@ valuate (Variable    x    m) = ask >>= (\f -> f (x, m)) . fst . unEnvironment
 valuate (Constructor c ps _) = Value c <$> mapM valuate ps
 
 interpret :: Expression meta -> Runtime meta Value
+-- interpret (Pattern p)   = valuate p
+-- interpret (Let p f x e m) =
+--   do v <- call (f, m) x
 interpret = undefined
