@@ -23,13 +23,13 @@ type Transformation f a = (f a -> f a)
 -- (make equal) expressions that consists of those patterns.
 data PatternMatch meta
   = NoMatch
-  | MatchBy (Transformation Expression meta)
+  | MatchBy (Transformation Pattern meta)
 
 -- Decides if two patterns match, and provides the above mentioned
 -- transformation as evidence.
 patternMatch :: Pattern meta -> Pattern meta -> PatternMatch meta
 patternMatch p q =
-  case runExcept $ unifier $ modify patternToExpression $ mgu p q of
+  case runExcept $ unifier $ mgu p q of
     (Left ()) -> NoMatch
     (Right f) -> MatchBy f
 

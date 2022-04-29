@@ -83,14 +83,14 @@ substitutionIsIdempotent :: Unifies
 substitutionIsIdempotent (APOSEP (p, q)) =
   case patternMatch p q of
     (NoMatch  ) -> False
-    (MatchBy f) -> f (Pattern p) == f (f (Pattern p))
-                && f (Pattern q) == f (f (Pattern q))
+    (MatchBy f) -> f p == f (f p)
+                && f q == f (f q)
 
 substitutionUnifies :: Unifies
 substitutionUnifies (APOSEP (p, q)) =
   case patternMatch p q of
     (NoMatch  ) -> False
-    (MatchBy f) -> f (Pattern p) == f (Pattern q)
+    (MatchBy f) -> f p == f q
 
 differentPatternsDontUnify :: DoesNotUnify
 differentPatternsDontUnify (APOSDP (p, q)) =
@@ -124,7 +124,6 @@ coreUnificationTests =
     ]
 
 -- *| Nasty details:
-
 
 -- Produces a pair of unifiable patterns from a pair of (possibly)
 -- ununifiable ones.
