@@ -23,9 +23,16 @@ Portability : POSIX
 
 module Core.Analysis
   ( bindingsAnalysis
-  , Transformation, PatternMatch(..) , patternMatch
+  , Transformation, PatternMatch(..), patternMatch, isMatch
   )
 where
 
-import Core.Analysis.Bindings    ( bindingsAnalysis )
-import Core.Analysis.Unification ( Transformation, PatternMatch(..) , patternMatch )
+import Core.Analysis.Bindings
+  ( bindingsAnalysis
+  )
+import Core.Analysis.Unification
+  ( Transformation
+  , PatternMatch(..)
+  , patternMatch
+  , isMatch
+  )

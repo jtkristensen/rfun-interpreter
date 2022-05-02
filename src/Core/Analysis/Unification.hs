@@ -33,6 +33,11 @@ patternMatch p q =
     (Left ()) -> NoMatch
     (Right f) -> MatchBy f
 
+-- Succeds if the a pattern match is not NoMatch.
+isMatch :: PatternMatch meta -> Bool
+isMatch NoMatch = False
+isMatch _       = True
+
 -- A unifier is a computation that either fails, or provides the
 -- transformation.
 type Unifier a = Except () (a -> a)

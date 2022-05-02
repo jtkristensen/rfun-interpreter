@@ -38,7 +38,7 @@ type Runtime         meta = RWST (Environment meta) () () (Except (Error meta))
 
 -- Picks a function definition from the environment (q in the paper).
 definitionOf :: (Name, meta) -> Runtime meta (Definition meta)
-definitionOf f = snd . unEnvironment <$> ask >>= \m -> m f
+definitionOf f = ask >>= (\m -> m f) . snd . unEnvironment
 
 -- The r-match rule is just a variation of mgu.
 match :: (Value, meta) -> Pattern meta -> Runtime meta (Substitution meta)
@@ -51,13 +51,39 @@ match (v, m) p =
 valuate :: Pattern meta -> Runtime meta Value
 valuate p =
   do unifier <- fst . unEnvironment <$> ask
-     case unifier p of
-       (Variable    x m   ) -> throwError ("Unbound variable " ++ x, m)
-       (Constructor c ps _) -> Value c <$> mapM valuate ps
+     check (unifier p)
+  where
+     check :: Pattern meta -> Runtime meta Value
+     check (Variable    x m   ) = throwError ("Unbound variable " ++ x, m)
+     check (Constructor c ps _) = Value c <$> mapM check ps
 
 -- Shadows a substitution.
-withBindings :: Substitution meta -> (Transformation Environment meta)
-withBindings g = Environment . first (\f -> f . g) . unEnvironment
+withBindings :: Substitution meta -> Transformation Environment meta
+withBindings g = Environment . first (. g) . unEnvironment
+
+-- If the first reverse match of a particular value `v`, is in the i'th
+-- branch of a top-level case statement, we shall call `i` the unmatch index
+-- of that case statement with respect to `v`.
+unmatchIndex :: Int -> (Value, meta) -> [Expression meta] -> Maybe Int
+unmatchIndex _ _      [                ] =
+  Nothing
+unmatchIndex i (v, m) (Pattern p : rest) =
+  if   isMatch (patternMatch (fromValue m v) p)
+  then return i
+  else unmatchIndex i (v, m) rest
+unmatchIndex i p (Let  _ _ _ e _ : rest) = unmatchIndex (i + 1) p (e : rest)
+unmatchIndex i p (RLet _ _ _ e _ : rest) = unmatchIndex (i + 1) p (e : rest)
+unmatchIndex i p (Case _ ps _    : rest) =
+  case unmatchIndex i p (map snd ps) of
+    Nothing -> unmatchIndex (i + 1) p rest
+    _       -> return i
+
+-- Returns an environment where the substitution has been replaced by another.
+environment :: Substitution meta -> Runtime meta (Environment meta)
+environment s =
+  Environment . (\p -> (s, snd p)) . unEnvironment <$> ask
+
+-- * Implementation
 
 -- Evaluates an expression with respect to a program.
 runProgram :: Show meta => Program meta -> Expression meta -> Runtime meta Value
@@ -84,6 +110,7 @@ uncall v p f =
      v'                 <- local (const g) (valuate q)
      uninterpret v' (Pattern p)
 
+-- Evaluates an expression at runtime.
 interpret :: Expression meta -> Runtime meta Value
 interpret (Pattern p)     = valuate p
 interpret (Let p f x e m) =
@@ -99,20 +126,10 @@ interpret (Case p ps m) =
      (q, e, i) <- firstMatch m v (ps `zip` [0..])
      s         <- match (v, meta p) q
      w         <- local (withBindings s) (interpret e)
-     (_, _, j) <- firstMatch m w (leaves ps `zip` [0..])
-     if i == j
-       then return w
-       else throwError ("Syntactic ortogonality violation in leaves", m)
-
--- Returns the leaf notes of a case statement.
-leaves :: [(Pattern meta, Body meta)] -> [(Pattern meta, Body meta)]
-leaves = undefined
--- leaves [] = []
--- leaves (p : rest) = leaf p : leaves rest
---   where
---     leaf (Pattern q) = (q, snd p)
---     leaf (Let _ _ _ e _) = leaf e
---     leaf (RLet _ _ _ e _) = leaf e
+     case unmatchIndex 0 (w, m) $ map snd ps of
+       (Just j) | i == j -> return w
+       Nothing           -> throwError ("/!\\ - Internal Error : _|_", m)
+       _                 -> throwError ("Syntactic ortogonality violation in leaves"  , m)
 
 -- Returns the first matching pattern, with its body and its index into the case statement.
 firstMatch
@@ -127,5 +144,27 @@ firstMatch m v (((p, e), i) : rest) =
 firstMatch m _ [ ] =
   throwError ("Pattern matching not exhaustive", m)
 
+-- Recalls the (unique) substitution that must have been used to valuate an
+-- expression with respect to a value.
 uninterpret :: Value -> Expression meta -> Runtime meta (Environment meta)
+-- uninterpret v (Pattern p    ) =
+--   do s <- match (v, meta p) p
+--      environment s
+-- uninterpret v (Let p f x e m) =
+--   do s <- fst . unEnvironment <$> uninterpret v e
+--      y <- local (withBindings s) (valuate p)
+--      t <- fst . unEnvironment <$> uncall y x (f, m)
+--      environment (s . t)
+-- uninterpret v (RLet y f p e m) =
+--   do s <- fst . unEnvironment <$> uninterpret v e
+--      w <- local (withBindings s) (call (f, m) p)
+--      t <- match (w, m) y
+--      environment (s . t)
+-- uninterpret v e@(Case p ps m) =
+--   do j <- case unmatchIndex 0 (v, m) e of
+--             Nothing  -> ("Reverse pattern matching not exhaustive", m)
+--             (Just k) -> return k
+--      let (p_j, e_j) = ps !! j
+--      g <- uninterpret v e_j
+--      w <- local (const g) (interpret p_j)
 uninterpret = undefined
