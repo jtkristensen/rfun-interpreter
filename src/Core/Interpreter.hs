@@ -61,6 +61,28 @@ valuate p =
 withBindings :: Substitution meta -> Transformation Environment meta
 withBindings g = Environment . first (. g) . unEnvironment
 
+-- Returns an environment where the substitution has been replaced by another.
+environment :: Substitution meta -> Runtime meta (Environment meta)
+environment s =
+  Environment . (\p -> (s, snd p)) . unEnvironment <$> ask
+
+-- * Pattern matching:
+
+-- Returns the first matching pattern, with its body and its index into the
+-- case statement. The first match (leaf) when running the case statement in
+-- reverse, must be in the subtree which is rooted at this index.
+firstMatch
+  :: meta
+  -> Value
+  -> [((Pattern meta, Body meta), Int)]
+  -> Runtime meta (Pattern meta, Body meta, Int)
+firstMatch m v (((p, e), i) : rest) =
+  case patternMatch (fromValue m v) p of
+    NoMatch -> firstMatch m v rest
+    _       -> return (p, e, i)
+firstMatch m _ [ ] =
+  throwError ("Pattern matching not exhaustive", m)
+
 -- If the first reverse match of a particular value `v`, is in the i'th
 -- branch of a top-level case statement, we shall call `i` the unmatch index
 -- of that case statement with respect to `v`.
@@ -77,11 +99,6 @@ unmatchIndex i p (Case _ ps _    : rest) =
   case unmatchIndex i p (map snd ps) of
     Nothing -> unmatchIndex (i + 1) p rest
     _       -> return i
-
--- Returns an environment where the substitution has been replaced by another.
-environment :: Substitution meta -> Runtime meta (Environment meta)
-environment s =
-  Environment . (\p -> (s, snd p)) . unEnvironment <$> ask
 
 -- * Implementation
 
@@ -130,19 +147,6 @@ interpret (Case p ps m) =
        (Just j) | i == j -> return w
        Nothing           -> throwError ("/!\\ - Internal Error : _|_", m)
        _                 -> throwError ("Syntactic ortogonality violation in leaves"  , m)
-
--- Returns the first matching pattern, with its body and its index into the case statement.
-firstMatch
-  :: meta
-  -> Value
-  -> [((Pattern meta, Body meta), Int)]
-  -> Runtime meta (Pattern meta, Body meta, Int)
-firstMatch m v (((p, e), i) : rest) =
-  case patternMatch (fromValue m v) p of
-    NoMatch -> firstMatch m v rest
-    _       -> return (p, e, i)
-firstMatch m _ [ ] =
-  throwError ("Pattern matching not exhaustive", m)
 
 -- Recalls the (unique) substitution that must have been used to valuate an
 -- expression with respect to a value.
