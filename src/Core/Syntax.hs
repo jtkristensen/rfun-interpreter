@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-|
 
-Module      : Core.Ast
+Module      : Core.Syntax
 Description : The abstract syntax for RCPL goes here.
 Author      : Joachim Tilsted Kristensen
 Licence     : GNU GENERAL PUBLIC LICENSE
