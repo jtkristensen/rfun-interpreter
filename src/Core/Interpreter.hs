@@ -151,24 +151,25 @@ interpret (Case p ps m) =
 -- Recalls the (unique) substitution that must have been used to valuate an
 -- expression with respect to a value.
 uninterpret :: Value -> Expression meta -> Runtime meta (Environment meta)
--- uninterpret v (Pattern p    ) =
---   do s <- match (v, meta p) p
---      environment s
--- uninterpret v (Let p f x e m) =
---   do s <- fst . unEnvironment <$> uninterpret v e
---      y <- local (withBindings s) (valuate p)
---      t <- fst . unEnvironment <$> uncall y x (f, m)
---      environment (s . t)
--- uninterpret v (RLet y f p e m) =
---   do s <- fst . unEnvironment <$> uninterpret v e
---      w <- local (withBindings s) (call (f, m) p)
---      t <- match (w, m) y
---      environment (s . t)
--- uninterpret v e@(Case p ps m) =
---   do j <- case unmatchIndex 0 (v, m) e of
---             Nothing  -> ("Reverse pattern matching not exhaustive", m)
---             (Just k) -> return k
---      let (p_j, e_j) = ps !! j
---      g <- uninterpret v e_j
---      w <- local (const g) (interpret p_j)
-uninterpret = undefined
+uninterpret v (Pattern p    ) =
+  do s <- match (v, meta p) p
+     environment s
+uninterpret v (Let p f x e m) =
+  do s <- fst . unEnvironment <$> uninterpret v e
+     y <- local (withBindings s) (valuate p)
+     t <- fst . unEnvironment <$> uncall y x (f, m)
+     environment (s . t)
+uninterpret v (RLet y f p e m) =
+  do s <- fst . unEnvironment <$> uninterpret v e
+     w <- local (withBindings s) (call (f, m) p)
+     t <- match (w, m) y
+     environment (s . t)
+uninterpret v (Case p ps m) =
+  do j <- case unmatchIndex 0 (v, m) (map snd ps) of
+            Nothing  -> throwError ("Reverse pattern matching not exhaustive", m)
+            (Just k) -> return k
+     let (p_j, e_j) = ps !! j
+     g <- uninterpret v e_j
+     w <- local (const g) (interpret (Pattern p_j))
+     s <- match (w, meta p_j) p
+     environment s
