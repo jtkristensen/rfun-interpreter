@@ -119,14 +119,6 @@ call f p =
      s                  <- match (v, meta p) q
      local (withBindings s) $ interpret e
 
--- Computes the (uniquely defined) environment.
-uncall :: Value -> Pattern meta -> (Name, meta) -> Runtime meta (Environment meta)
-uncall v p f =
-  do (Function _ q e _) <- definitionOf f
-     g                  <- uninterpret v e
-     v'                 <- local (const g) (valuate q)
-     uninterpret v' (Pattern p)
-
 -- Evaluates an expression at runtime.
 interpret :: Expression meta -> Runtime meta Value
 interpret (Pattern p)     = valuate p
@@ -147,6 +139,14 @@ interpret (Case p ps m) =
        (Just j) | i == j -> return w
        Nothing           -> throwError ("/!\\ - Internal Error : _|_", m)
        _                 -> throwError ("Syntactic ortogonality violation in leaves"  , m)
+
+-- Computes the (uniquely defined) environment.
+uncall :: Value -> Pattern meta -> (Name, meta) -> Runtime meta (Environment meta)
+uncall v p f =
+  do (Function _ q e _) <- definitionOf f
+     g                  <- uninterpret v e
+     v'                 <- local (const g) (valuate q)
+     uninterpret v' (Pattern p)
 
 -- Recalls the (unique) substitution that must have been used to valuate an
 -- expression with respect to a value.
