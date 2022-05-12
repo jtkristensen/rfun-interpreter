@@ -1,6 +1,6 @@
-name:                rcpl
+name:                rfun-interpreter
 version:             0.1.0.0
-github:              "githubuser/rcpl"
+github:              "jtkristensen/rfun-interpreter"
 license:             BSD3
 author:              "Joachim Tilsted Kristensen"
 maintainer:          "tilsted@di.ku.dk"
@@ -9,10 +9,10 @@ copyright:           "2022 Joachim Tilsted Kristensen"
 extra-source-files:
 - README.md
 
-synopsis: A prototype implementation of the RCPL compliler.
+synopsis: A prototype implementation of the RFun language.
 category: Domain Specific Languages, Reversible Computing.
 
-description: Please see the README on GitHub at <https://github.com/jtkristensen/rcpl/blob/main/README.md>
+description: Please see the README on GitHub at <https://github.com/jtkristensen/rfun-interpreter/blob/main/README.md>
 
 dependencies:
 - base              >= 4.7  && < 5
