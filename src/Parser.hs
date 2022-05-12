@@ -1,7 +1,7 @@
 {-|
 
 Module      : Core.Parser
-Description : This is a parser for the RFun Core language.
+Description : This is a parser for the RFun language.
 Author      : Joachim Tilsted Kristensen
 Licence     : GNU GENERAL PUBLIC LICENSE
 Maintainer  : tilsted@di.ku.dk

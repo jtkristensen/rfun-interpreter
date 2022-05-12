@@ -2,7 +2,7 @@
 {-|
 
 Module      : Syntax
-Description : The abstract syntax for RCPL goes here.
+Description : The abstract syntax for RFun goes here.
 Author      : Joachim Tilsted Kristensen
 Licence     : GNU GENERAL PUBLIC LICENSE
 Maintainer  : tilsted@di.ku.dk

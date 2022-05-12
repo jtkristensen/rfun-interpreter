@@ -1,14 +1,14 @@
 {-|
 
 Module      : Interpreter
-Description : An interpreter for RFun Core.
+Description : An interpreter for RFun.
 Author      : Joachim Tilsted Kristensen
 Licence     : GNU GENERAL PUBLIC LICENSE
 Maintainer  : tilsted@di.ku.dk
 Stability   : experimental
 Portability : POSIX
 
-The following RFun Core implementation, is based on the article "Towards a
+The following RFun implementation, is based on the article "Towards a
 functional reversible language" by Yokoyama, Bock and Glück.
 
 -}
