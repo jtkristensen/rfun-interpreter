@@ -1,12 +1,12 @@
 
-module Core.BindingsAnalysisTests where
+module BindingsAnalysisTests where
 
 import Test.Tasty
 import Test.Tasty.HUnit
 
-import Core.Syntax
-import Core.Analysis.Bindings
-import Core.Parser       ( Source, SourceFileReference, program )
+import Syntax
+import Analysis.Bindings
+import Parser       ( Source, SourceFileReference, program )
 import Text.Parsec       ( runParser                            )
 import Text.Parsec.Error ( ParseError                           )
 

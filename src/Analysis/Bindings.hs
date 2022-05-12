@@ -1,6 +1,6 @@
 {-|
 
-Module      : Core.Analysis.Bindings
+Module      : Analysis.Bindings
 Description : Includes pattern regularity and expressional linearity.
 Author      : Joachim Tilsted Kristensen
 Licence     : GNU GENERAL PUBLIC LICENSE
@@ -10,9 +10,9 @@ Portability : POSIX
 
 -}
 
-module Core.Analysis.Bindings where
+module Analysis.Bindings where
 
-import Core.Syntax
+import Syntax
 import Control.Monad.RWS
 import Control.Monad.Except
 

@@ -1,6 +1,6 @@
 {-|
 
-Module      : Core.Analysis.Unification
+Module      : Analysis.Unification
 Description : Implements various unification algorithms used for Most General Match.
 Author      : Joachim Tilsted Kristensen
 Licence     : GNU GENERAL PUBLIC LICENSE
@@ -10,10 +10,10 @@ Portability : POSIX
 
 -}
 
-module Core.Analysis.Unification where
+module Analysis.Unification where
 
-import Core.Syntax
-import Core.Analysis.Bindings ( namesInPattern )
+import Syntax
+import Analysis.Bindings ( namesInPattern )
 import Control.Monad.Except
 import Data.Bifunctor ( bimap )
 

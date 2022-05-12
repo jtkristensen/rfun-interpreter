@@ -1,6 +1,6 @@
 {-|
 
-Module      : Core.Interpreter
+Module      : Interpreter
 Description : An interpreter for RFun Core.
 Author      : Joachim Tilsted Kristensen
 Licence     : GNU GENERAL PUBLIC LICENSE
@@ -13,10 +13,15 @@ functional reversible language" by Yokoyama, Bock and Glück.
 
 -}
 
-module Core.Interpreter where
+module Interpreter where
 
-import Core.Syntax
-import Core.Analysis
+import Syntax
+import Analysis.Unification
+  ( Transformation
+  , PatternMatch(..)
+  , patternMatch
+  , isMatch
+  )
 
 import Control.Arrow
 import Control.Monad.RWS

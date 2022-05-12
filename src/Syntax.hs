@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-|
 
-Module      : Core.Syntax
+Module      : Syntax
 Description : The abstract syntax for RCPL goes here.
 Author      : Joachim Tilsted Kristensen
 Licence     : GNU GENERAL PUBLIC LICENSE
@@ -16,7 +16,7 @@ Gent, Beligium, July 2022).
 
 -}
 
-module Core.Syntax where
+module Syntax where
 
 -- * Abbreviations.
 

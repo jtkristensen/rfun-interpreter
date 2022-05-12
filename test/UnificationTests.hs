@@ -1,15 +1,15 @@
 
-module Core.UnificationTests where
+module UnificationTests where
 
 import Test.Tasty
 import Test.Tasty.QuickCheck as QC
 import Test.Tasty.HUnit
 
-import Core.Syntax
-import Core.Analysis.Unification
-import Core.Analysis.Bindings    ( namesInPattern )
+import Syntax
+import Analysis.Unification
+import Analysis.Bindings    ( namesInPattern )
 
-import Core.TestConfig     ( sizeOfGeneratedPatterns )
+import TestConfig     ( sizeOfGeneratedPatterns )
 import Control.Monad.State ( State , runState , get, put )
 
 -- *| Generators:

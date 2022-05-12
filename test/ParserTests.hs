@@ -1,11 +1,11 @@
 
-module Core.ParserTests where
+module ParserTests where
 
 import Test.Tasty
 import Test.Tasty.HUnit
 
-import Core.Syntax
-import Core.Parser
+import Syntax
+import Parser
 import Text.Parsec
 import Text.Parsec.Pos
 import Text.Parsec.Error

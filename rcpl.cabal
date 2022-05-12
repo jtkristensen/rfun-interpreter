@@ -26,13 +26,11 @@ source-repository head
 
 library
   exposed-modules:
-      Analysis
-      Core.Analysis
-      Core.Analysis.Bindings
-      Core.Analysis.Unification
-      Core.Interpreter
-      Core.Parser
-      Core.Syntax
+      Analysis.Bindings
+      Analysis.Unification
+      Interpreter
+      Parser
+      Syntax
   other-modules:
       Paths_rcpl
   hs-source-dirs:
@@ -69,10 +67,10 @@ test-suite rcpl-test
   type: exitcode-stdio-1.0
   main-is: Driver.hs
   other-modules:
-      Core.BindingsAnalysisTests
-      Core.ParserTests
-      Core.TestConfig
-      Core.UnificationTests
+      BindingsAnalysisTests
+      ParserTests
+      TestConfig
+      UnificationTests
       Paths_rcpl
   hs-source-dirs:
       test

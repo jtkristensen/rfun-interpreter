@@ -24,9 +24,9 @@ That are just syntactic sugar for regular ones.
 
 -}
 
-module Core.Parser where
+module Parser where
 
-import Core.Syntax
+import Syntax
 import Text.Parsec
 import Control.Monad (void)
 

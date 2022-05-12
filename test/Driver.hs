@@ -6,9 +6,9 @@ import Test.Tasty.HUnit
 import Data.List
 import Data.Ord
 
-import Core.ParserTests
-import Core.BindingsAnalysisTests
-import Core.UnificationTests
+import ParserTests
+import BindingsAnalysisTests
+import UnificationTests
 
 main = defaultMain tests
 
