@@ -27,7 +27,7 @@ library:
   source-dirs: src
 
 executables:
-  rcpl-exe:
+  rfun-interpreter:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
@@ -35,10 +35,10 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - rcpl
+    - rfun-interpreter
 
 tests:
-  rcpl-test:
+  rfun-interpreter-test:
     main:                Driver.hs
     source-dirs:         test
     ghc-options:
@@ -46,4 +46,4 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - rcpl
+    - rfun-interpreter
