@@ -93,18 +93,3 @@ data Value
 
 fromValue :: meta -> Value -> Pattern meta
 fromValue m (Value c vs) = Constructor c (fromValue m <$> vs) m
-
--- Todo:
--- [x] Collect meta data, such as source position and type.
--- [x] What instances (Meta, Functor, ..)
--- [ ] Documentation for syntactic parts (once they have been decided)?
--- [ ] What about equality ?
--- [ ] Pretty printer ?
-
--- Extensions will happen via a different Ast.
--- [ ] Extend with datatype definitions.
--- [ ] Extend to express actors.
--- [ ] Extend with send/unsend.
--- [ ] Extend with recieve/unrecieve.
--- [ ] Extend to include lambdas.
--- [ ] Extend with type declarations.
