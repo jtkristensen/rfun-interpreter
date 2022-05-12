@@ -1,6 +1,17 @@
-# RCPL
+# An interpreter for the RFun programming language.
 
-Is a reversible concurrent programming language. The non-concurrent parts of RCPL are heavily inspired by the reversible functional programming language RFUN, and the purpose of its design, is to provide its designers with insights into invertibility for concurrent computation.
+RFun was suggested by Yokoyama, Bock and Glück in the article `Towards a
+functional reversible language` which was published at RCPL in 2011.
+This repo implements the language, with only few changes:
+
+1. The paper suggests a semantics in which linearity analysis i embeded in the evaluation
+judgement for expression. Here, we perform the analysis as a separate step, and then we just
+assume linearity everywhere else.
+2. The paper suggests a reversible semantics, but here we implement two mutually recursive semantics `interpret` and `uninterpret`.
+
+There are several things to be learnt about functional reversible programming languauges,
+and but I will not publish the results here, until they are already published in a paper,
+for reasons I am sure you will understand.
 
 # Status
 
