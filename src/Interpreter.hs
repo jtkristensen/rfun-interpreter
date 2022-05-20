@@ -145,7 +145,8 @@ interpret (Case p ps m) =
        Nothing           -> throwError ("/!\\ - Internal Error : _|_", m)
        _                 -> throwError ("Syntactic ortogonality violation in leaves"  , m)
 
--- Computes the (uniquely defined) environment.
+-- Computes the (uniquely defined) most general environment `e`, such that
+-- `e |- f p ~> v`.
 uncall :: Value -> Pattern meta -> (Name, meta) -> Runtime meta (Environment meta)
 uncall v p f =
   do (Function _ q e _) <- definitionOf f
