@@ -50,7 +50,7 @@ data Definition                               meta
 data Pattern                         meta
   = Variable    VName                meta
   | Constructor Name  [Pattern meta] meta
-  deriving (Eq, Functor)
+  deriving (Show, Eq, Functor)
 
 data Expression                                                meta
   = Pattern (Pattern meta)
@@ -58,14 +58,6 @@ data Expression                                                meta
   | RLet (InPattern  meta) FName (OutPattern meta) (Body meta) meta
   | Case (Pattern meta) [(Pattern meta, Body meta)]            meta
   deriving (Show, Eq, Functor)
-
-instance Show (Pattern meta) where
-  show = ("pattern : "++) . show'
-    where
-      show' (Variable    x    _) = x
-      show' (Constructor c ps _) =
-        ("("++) . (++")") $
-        c ++ foldr (\x xs -> " " ++ show' x ++ xs) "" ps
 
 -- * A type class for extracting meta data.
 

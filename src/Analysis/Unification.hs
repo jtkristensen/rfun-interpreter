@@ -42,7 +42,7 @@ isMatch _       = True
 -- transformation.
 type Unifier a = Except () (a -> a)
 
-doesNotUnify :: Unifier failiure
+doesNotUnify :: Unifier failure
 doesNotUnify = throwError ()
 
 -- A is a special unifying transformation.
