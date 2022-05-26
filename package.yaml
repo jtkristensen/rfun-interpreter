@@ -26,17 +26,6 @@ dependencies:
 library:
   source-dirs: src
 
-executables:
-  rfun-interpreter:
-    main:                Main.hs
-    source-dirs:         app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - rfun-interpreter
-
 tests:
   rfun-interpreter-test:
     main:                Driver.hs
