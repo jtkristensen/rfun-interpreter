@@ -155,7 +155,7 @@ uncall v p f =
      uninterpret v' (Pattern p)
 
 -- Recalls the (unique) substitution that was used to valuate to a
--- particular value from valuate an expression.
+-- particular value from some expression.
 uninterpret :: Value -> Expression meta -> Runtime meta (Environment meta)
 uninterpret v (Pattern p    ) =
   do s <- match (v, meta p) p
