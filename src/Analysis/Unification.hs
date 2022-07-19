@@ -62,7 +62,7 @@ unify (Variable x _) p                     | not (p `contains` x) = p `substitut
 unify  p                    (Variable x _) | not (p `contains` x) = p `substitutes` x
 unify (Constructor c ps _) (Constructor t qs _)
   | c == t && length ps == length qs
-  = foldr (\(p, q) s -> s <> unify p q) mempty (zip ps qs)
+  = foldr ((<>) . uncurry unify) mempty (zip ps qs)
 unify _ _
   = Substitution doesNotUnify
 
