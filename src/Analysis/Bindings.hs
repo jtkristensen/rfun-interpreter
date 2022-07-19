@@ -112,7 +112,7 @@ bindingsOfPattern (Variable x m)       =
 -- Computes the variables (and meta data) that occur in a pattern.
 variablesInPattern :: Pattern meta -> [(Name, meta)]
 variablesInPattern (Constructor _ ps _) = ps >>= variablesInPattern
-variablesInPattern (Variable    x    m) = [(x, m)]
+variablesInPattern (Variable    x    m) = return (x, m)
 
 -- Computes the names that occur in a pattern.
 namesInPattern :: Pattern meta -> [Name]
