@@ -29,7 +29,7 @@ data PatternMatch meta
 -- transformation as evidence.
 patternMatch :: Pattern meta -> Pattern meta -> PatternMatch meta
 patternMatch p q =
-  case runExcept $ unifier $ mgu p q of
+  case runExcept $ unifier $ unify p q of
     (Left ()) -> NoMatch
     (Right f) -> MatchBy f
 
@@ -56,22 +56,15 @@ instance Monoid (Substitution f a) where
   mempty  = Substitution $ return id
   mappend = (<>)
 
--- Computes the most general unifier (mgu) for patterns.
-mgu :: Pattern meta -> Pattern meta -> Substitution Pattern meta
-mgu (Variable x _)       (Variable y _) | x == y               = mempty
-mgu (Variable x _)       p              | not (p `contains` x) = p `substitutes` x
-mgu  p                   (Variable x _) | not (p `contains` x) = p `substitutes` x
-mgu (Constructor c ps _) (Constructor t qs _)
-  | c == t && length ps == length qs = mgus (zip ps qs)
-    where
-      mgus :: [(Pattern meta, Pattern meta)] -> Substitution Pattern meta
-      mgus [            ] = mempty
-      mgus ((p, q) : pqs) =
-        Substitution $
-          do s0 <- unifier $ mgu p q
-             s1 <- unifier $ mgus (bimap s0 s0 <$> pqs)
-             return (s1 . s0)
-mgu _ _
+-- Computes the most general unifier for patterns
+unify :: Pattern a -> Pattern a -> Substitution Pattern a
+unify (Variable x _) (Variable y _)        | x == y               = mempty
+unify (Variable x _) p                     | not (p `contains` x) = p `substitutes` x
+unify  p                    (Variable x _) | not (p `contains` x) = p `substitutes` x
+unify (Constructor c ps _) (Constructor t qs _)
+  | c == t && length ps == length qs
+  = foldr (\(p, q) s -> s <> unify p q) mempty (zip ps qs)
+unify _ _
   = Substitution doesNotUnify
 
 -- Holds if the variable argument appears in the pattern.
