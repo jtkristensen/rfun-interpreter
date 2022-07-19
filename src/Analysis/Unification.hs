@@ -15,7 +15,6 @@ module Analysis.Unification where
 import Syntax
 import Analysis.Bindings ( namesInPattern )
 import Control.Monad.Except
-import Data.Bifunctor ( bimap )
 
 type Transformation f a = (f a -> f a)
 
