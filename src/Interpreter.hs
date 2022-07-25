@@ -45,7 +45,7 @@ type Runtime         meta = RWST (Environment meta) () () (Except (Error meta))
 definitionOf :: (Name, meta) -> Runtime meta (Definition meta)
 definitionOf f = ask >>= (\m -> m f) . snd . unEnvironment
 
--- The r-match rule is just a variation of mgu.
+-- The r-match rule is just a variation of most-general-unifier.
 match :: (Value, meta) -> Pattern meta -> Runtime meta (Substitution meta)
 match (v, m) p =
   case patternMatch p (fromValue m v) of
