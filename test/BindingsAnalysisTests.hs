@@ -6,7 +6,7 @@ import Test.Tasty.HUnit
 
 import Syntax
 import Analysis.Bindings
-import Parser       ( Source, SourceFileReference, program )
+import Parser            ( Source, SourceFileReference, program )
 import Text.Parsec       ( runParser                            )
 import Text.Parsec.Error ( ParseError                           )
 
