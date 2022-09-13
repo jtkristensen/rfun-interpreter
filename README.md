@@ -9,10 +9,6 @@ judgement for expression. Here, we perform the analysis as a separate step, and 
 assume linearity everywhere else.
 2. The paper suggests a reversible semantics, but here we implement two mutually recursive semantics `interpret` and `uninterpret`.
 
-There are several things to be learnt about functional reversible programming languauges,
-and but I will not publish the results here, until they are already published in a paper,
-for reasons I am sure you will understand.
-
 # Status
 
 [![main-ci](https://github.com/jtkristensen/rcpl/actions/workflows/main.yaml/badge.svg)](https://github.com/jtkristensen/rcpl/actions/workflows/main.yaml)
